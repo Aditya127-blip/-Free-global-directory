@@ -1,1 +1,447 @@
+import { useState } from "react";
 
+const NICHES = [
+  { id: "restaurants", label: "Restaurants", icon: "🍽️", desc: "Food & Dining", count: "14,200+" },
+  { id: "gyms", label: "Gyms & Fitness", icon: "💪", desc: "Health & Wellness", count: "6,800+" },
+  { id: "realestate", label: "Real Estate", icon: "🏢", desc: "Property & Agents", count: "22,500+" },
+  { id: "medical", label: "Medical", icon: "🏥", desc: "Clinics & Practices", count: "9,100+" },
+  { id: "legal", label: "Legal", icon: "⚖️", desc: "Law & Attorneys", count: "7,300+" },
+  { id: "dental", label: "Dental", icon: "🦷", desc: "Dentists & Orthodontics", count: "8,900+" },
+  { id: "automotive", label: "Automotive", icon: "🚗", desc: "Repair & Dealerships", count: "11,400+" },
+  { id: "beauty", label: "Beauty & Spa", icon: "💅", desc: "Salons & Wellness", count: "18,600+" },
+];
+
+const COUNTRIES = ["United States", "Canada", "United Kingdom", "Australia"];
+const STATES = {
+  "United States": ["California", "New York", "Texas", "Florida", "Illinois"],
+  "Canada": ["Ontario", "British Columbia", "Quebec", "Alberta"],
+  "United Kingdom": ["England", "Scotland", "Wales"],
+  "Australia": ["New South Wales", "Victoria", "Queensland"],
+};
+const CITIES = {
+  "California": ["Los Angeles", "San Francisco", "San Diego", "Sacramento"],
+  "New York": ["New York City", "Buffalo", "Albany", "Rochester"],
+  "Texas": ["Houston", "Austin", "Dallas", "San Antonio"],
+  "Florida": ["Miami", "Orlando", "Tampa", "Jacksonville"],
+  "Illinois": ["Chicago", "Springfield", "Naperville"],
+  "Ontario": ["Toronto", "Ottawa", "Hamilton"],
+  "British Columbia": ["Vancouver", "Victoria", "Kelowna"],
+  "Quebec": ["Montreal", "Quebec City", "Laval"],
+  "Alberta": ["Calgary", "Edmonton", "Red Deer"],
+  "England": ["London", "Manchester", "Birmingham", "Leeds"],
+  "Scotland": ["Edinburgh", "Glasgow", "Aberdeen"],
+  "Wales": ["Cardiff", "Swansea", "Newport"],
+  "New South Wales": ["Sydney", "Newcastle", "Wollongong"],
+  "Victoria": ["Melbourne", "Geelong", "Ballarat"],
+  "Queensland": ["Brisbane", "Gold Coast", "Cairns"],
+};
+
+const MOCK_BUSINESSES = {
+  restaurants: [
+    { id: 1, name: "The Golden Fork", address: "142 Main St", phone: "+1 (555) 234-8901", email: "contact@goldenfork.com", website: "goldenfork.com", issues: ["No SSL", "Slow Load", "Not Mobile-Friendly"], score: 38 },
+    { id: 2, name: "Bella Vista Bistro", address: "88 Harbor Blvd", phone: "+1 (555) 312-7654", email: "info@bellavista.com", website: "bellavista.com", issues: ["No GMB", "Broken Links"], score: 61 },
+    { id: 3, name: "Spice Garden", address: "229 Oak Ave", phone: "+1 (555) 445-1230", email: "hello@spicegarden.com", website: "spicegarden.net", issues: ["Outdated CMS", "No Reviews", "Missing Schema"], score: 45 },
+    { id: 4, name: "The Rustic Plate", address: "550 Elm St", phone: "+1 (555) 667-9012", email: "eat@rusticplate.com", website: "rusticplate.com", issues: ["No SSL"], score: 72 },
+  ],
+  gyms: [
+    { id: 1, name: "IronPeak Fitness", address: "300 Commerce Dr", phone: "+1 (555) 789-0123", email: "info@ironpeak.com", website: "ironpeak.com", issues: ["No SSL", "No Lead Form", "Poor SEO"], score: 29 },
+    { id: 2, name: "FlexZone Gym", address: "17 Athletic Blvd", phone: "+1 (555) 890-3456", email: "join@flexzone.com", website: "flexzone.net", issues: ["Slow Load", "No Analytics"], score: 55 },
+    { id: 3, name: "PureStrength Studio", address: "404 Fitness Way", phone: "+1 (555) 123-6789", email: "train@purestrength.com", website: "purestrength.com", issues: ["Broken Links", "No Mobile"], score: 41 },
+  ],
+  realestate: [
+    { id: 1, name: "Apex Realty Group", address: "1 Tower Plaza", phone: "+1 (555) 234-5678", email: "deals@apexrealty.com", website: "apexrealty.com", issues: ["No SSL", "Missing Schema", "Slow Load", "No Reviews"], score: 22 },
+    { id: 2, name: "Horizon Properties", address: "789 Skyline Dr", phone: "+1 (555) 345-6789", email: "homes@horizonprop.com", website: "horizonprop.com", issues: ["Outdated Design"], score: 68 },
+    { id: 3, name: "BlueSky Estates", address: "222 Meadow Lane", phone: "+1 (555) 456-7890", email: "list@blueskyest.com", website: "blueskyestates.net", issues: ["No GMB", "Broken Links", "Poor SEO"], score: 37 },
+  ],
+  medical: [
+    { id: 1, name: "WellCare Clinic", address: "55 Health Plaza", phone: "+1 (555) 567-8901", email: "appointments@wellcare.com", website: "wellcare.com", issues: ["No SSL", "No HIPAA Notice", "Slow Load"], score: 31 },
+    { id: 2, name: "Summit Family Medicine", address: "1200 Medical Dr", phone: "+1 (555) 678-9012", email: "care@summitfm.com", website: "summitfm.com", issues: ["Missing Schema", "No Reviews"], score: 59 },
+  ],
+};
+
+const ISSUE_TAGS = {
+  "No SSL": { color: "bg-red-500/20 text-red-300 border-red-500/30", priority: "critical" },
+  "Slow Load": { color: "bg-orange-500/20 text-orange-300 border-orange-500/30", priority: "high" },
+  "Not Mobile-Friendly": { color: "bg-orange-500/20 text-orange-300 border-orange-500/30", priority: "high" },
+  "No GMB": { color: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30", priority: "medium" },
+  "Broken Links": { color: "bg-red-500/20 text-red-300 border-red-500/30", priority: "critical" },
+  "Outdated CMS": { color: "bg-purple-500/20 text-purple-300 border-purple-500/30", priority: "medium" },
+  "No Reviews": { color: "bg-blue-500/20 text-blue-300 border-blue-500/30", priority: "medium" },
+  "Missing Schema": { color: "bg-cyan-500/20 text-cyan-300 border-cyan-500/30", priority: "medium" },
+  "Poor SEO": { color: "bg-yellow-500/20 text-yellow-300 border-yellow-500/30", priority: "medium" },
+  "No Lead Form": { color: "bg-purple-500/20 text-purple-300 border-purple-500/30", priority: "high" },
+  "No Analytics": { color: "bg-slate-400/20 text-slate-300 border-slate-400/30", priority: "low" },
+  "Outdated Design": { color: "bg-purple-500/20 text-purple-300 border-purple-500/30", priority: "medium" },
+  "No Mobile": { color: "bg-orange-500/20 text-orange-300 border-orange-500/30", priority: "high" },
+  "No HIPAA Notice": { color: "bg-red-500/20 text-red-300 border-red-500/30", priority: "critical" },
+};
+
+const AUDIT_DETAILS = {
+  "No SSL": {
+    impact: "Critical Security Risk",
+    description: "Your website is running on HTTP instead of HTTPS. This means all data transmitted between visitors and your site is unencrypted and visible to attackers. Google also penalizes non-HTTPS sites in search rankings.",
+    fix: "Purchase an SSL certificate (free with Let's Encrypt) and configure your server to redirect all HTTP traffic to HTTPS. Update all internal links to use HTTPS.",
+  },
+  "Slow Load": {
+    impact: "High — User Experience & SEO",
+    description: "Page load time exceeds 4.2 seconds on mobile (industry benchmark: under 2s). Google uses Core Web Vitals as ranking signals, and slow sites rank lower. 53% of users abandon pages that take over 3 seconds to load.",
+    fix: "Compress all images (use WebP format), enable browser caching, minify CSS/JS files, and consider a CDN like Cloudflare. Audit with Google PageSpeed Insights.",
+  },
+  "Not Mobile-Friendly": {
+    impact: "High — 60%+ of Traffic",
+    description: "The site fails Google's Mobile-Friendly Test. Elements overlap, text is too small to read, and tap targets are too close together. Since 2019, Google uses mobile-first indexing, meaning your mobile experience determines your ranking.",
+    fix: "Redesign using a responsive framework (Bootstrap or Tailwind CSS). Test with Google's Mobile-Friendly Test tool and aim for a passing score.",
+  },
+  "No GMB": {
+    impact: "Medium — Local Discovery",
+    description: "No Google My Business (now Google Business Profile) listing found. This is the single highest-impact free tool for local businesses. Without it, you're invisible in Google Maps and the local 3-pack results.",
+    fix: "Claim or create your Google Business Profile at business.google.com. Fill out all fields, add photos, set business hours, and encourage customers to leave reviews.",
+  },
+  "Broken Links": {
+    impact: "Critical — Trust & Crawlability",
+    description: "Multiple 404 errors detected across the site. Broken links damage user trust, increase bounce rate, and prevent search engine crawlers from indexing your pages correctly.",
+    fix: "Run a site crawl using Screaming Frog or Ahrefs. Fix or redirect all broken URLs. Set up a custom 404 page as a fallback.",
+  },
+  "Missing Schema": {
+    impact: "Medium — Rich Snippets",
+    description: "No structured data (Schema.org markup) detected. Schema helps search engines understand your content and can unlock rich results like star ratings, business hours, and FAQs directly in search results.",
+    fix: "Add LocalBusiness schema to your homepage. Include name, address, phone, hours, and service type. Use Google's Structured Data Testing Tool to validate.",
+  },
+  "No Reviews": {
+    impact: "Medium — Conversion & Trust",
+    description: "No visible customer reviews or testimonials on the site or linked from Google/Yelp. Studies show 88% of consumers trust online reviews as much as personal recommendations.",
+    fix: "Create a review acquisition strategy: send follow-up emails to customers with a direct Google review link. Embed a review widget on your website from Google or Trustpilot.",
+  },
+  "Poor SEO": {
+    impact: "High — Organic Traffic",
+    description: "Multiple on-page SEO issues detected: missing title tags, duplicate meta descriptions, and no H1 hierarchy. These are fundamental signals search engines use to understand and rank your pages.",
+    fix: "Install an SEO plugin (Yoast for WordPress) or hire an SEO specialist. Ensure every page has a unique title tag (50-60 chars), meta description (150-160 chars), and logical heading structure.",
+  },
+  "No Lead Form": {
+    impact: "High — Revenue Impact",
+    description: "No contact or lead capture form found on the site. Visitors who want to inquire are forced to hunt for a phone number or email, drastically increasing drop-off. Estimated 30-50% conversion loss.",
+    fix: "Add a simple contact/inquiry form to your homepage and contact page. Tools like Typeform, Gravity Forms, or Webflow Forms are easy to implement and integrate with CRMs.",
+  },
+  "No Analytics": {
+    impact: "Low-Medium — Blind Spots",
+    description: "No Google Analytics or tracking pixel detected. You have zero visibility into how many people visit your site, where they come from, or what they do. You cannot improve what you cannot measure.",
+    fix: "Install Google Analytics 4 (free) by adding the tracking script to every page. Also set up Google Search Console to track keyword rankings and impressions.",
+  },
+  "Outdated CMS": {
+    impact: "Medium — Security & Performance",
+    description: "The website appears to be running on an outdated content management system with known vulnerabilities. Outdated CMS versions are common targets for automated hacking attacks.",
+    fix: "Update your CMS (WordPress, Joomla, etc.) and all plugins/themes to their latest versions. Enable automatic security updates and run regular vulnerability scans.",
+  },
+  "Outdated Design": {
+    impact: "Medium — Brand Credibility",
+    description: "The website's visual design appears to be from 2010-2015 based on font choices, layout patterns, and color schemes. An outdated design immediately signals low credibility to potential customers.",
+    fix: "Consider a full website redesign using a modern template or page builder. Modern, clean design increases conversion rates by an average of 20-35%.",
+  },
+  "No HIPAA Notice": {
+    impact: "Critical — Legal Compliance",
+    description: "No HIPAA compliance notice or privacy policy detected. Medical practices that collect patient information online are legally required to display HIPAA notices and have proper data security in place.",
+    fix: "Consult a healthcare IT attorney. Add a clear HIPAA notice, privacy policy, and ensure any online forms use HIPAA-compliant hosting and encryption.",
+  },
+};
+
+function ScoreGauge({ score }) {
+  const color = score >= 70 ? "#22c55e" : score >= 45 ? "#f59e0b" : "#ef4444";
+  const label = score >= 70 ? "Good" : score >= 45 ? "Needs Work" : "Critical";
+  const circumference = 2 * Math.PI * 36;
+  const offset = circumference - (score / 100) * circumference;
+  return (
+    <div className="flex flex-col items-center gap-1">
+      <svg width="96" height="96" viewBox="0 0 96 96">
+        <circle cx="48" cy="48" r="36" fill="none" stroke="#1e293b" strokeWidth="8" />
+        <circle cx="48" cy="48" r="36" fill="none" stroke={color} strokeWidth="8"
+          strokeDasharray={circumference} strokeDashoffset={offset}
+          strokeLinecap="round" transform="rotate(-90 48 48)"
+          style={{ transition: "stroke-dashoffset 1s ease" }} />
+        <text x="48" y="52" textAnchor="middle" fill={color} fontSize="20" fontWeight="700" fontFamily="monospace">{score}</text>
+      </svg>
+      <span style={{ color }} className="text-xs font-semibold tracking-widest uppercase">{label}</span>
+    </div>
+  );
+}
+
+export default function App() {
+  const [screen, setScreen] = useState(1);
+  const [selectedNiche, setSelectedNiche] = useState(null);
+  const [country, setCountry] = useState("");
+  const [state, setState] = useState("");
+  const [city, setCity] = useState("");
+  const [selectedBiz, setSelectedBiz] = useState(null);
+
+  const businesses = MOCK_BUSINESSES[selectedNiche?.id] || [];
+
+  const goToLocation = (niche) => { setSelectedNiche(niche); setScreen(2); };
+  const goToList = () => { if (country && state && city) setScreen(3); };
+  const goToReport = (biz) => { setSelectedBiz(biz); setScreen(4); };
+  const reset = () => { setScreen(1); setSelectedNiche(null); setCountry(""); setState(""); setCity(""); setSelectedBiz(null); };
+
+  return (
+    <div className="min-h-screen bg-[#080c14] text-slate-100" style={{ fontFamily: "'DM Sans', sans-serif" }}>
+      <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+
+      {/* Top Nav */}
+      <nav className="border-b border-slate-800/60 px-6 py-4 flex items-center justify-between backdrop-blur-sm bg-[#080c14]/80 sticky top-0 z-50">
+        <div className="flex items-center gap-3 cursor-pointer" onClick={reset}>
+          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 to-blue-600 flex items-center justify-center text-sm font-bold">B</div>
+          <span className="font-semibold text-slate-100 tracking-tight">BizAudit<span className="text-cyan-400">Pro</span></span>
+        </div>
+        <div className="flex items-center gap-2 text-sm text-slate-400">
+          {[{ n: 1, label: "Niche" }, { n: 2, label: "Location" }, { n: 3, label: "Businesses" }, { n: 4, label: "Report" }].map(({ n, label }) => (
+            <div key={n} className="flex items-center gap-2">
+              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-xs font-semibold transition-all duration-300 ${screen >= n ? "bg-cyan-500 text-[#080c14]" : "bg-slate-800 text-slate-500"}`}>{n}</div>
+              <span className={`hidden sm:block transition-colors ${screen === n ? "text-cyan-400" : screen > n ? "text-slate-400" : "text-slate-600"}`}>{label}</span>
+              {n < 4 && <span className="text-slate-700 mx-1">›</span>}
+            </div>
+          ))}
+        </div>
+      </nav>
+
+      <div className="max-w-5xl mx-auto px-4 py-10">
+
+        {/* SCREEN 1: Niche Grid */}
+        {screen === 1 && (
+          <div>
+            <div className="text-center mb-12">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-cyan-500/10 border border-cyan-500/20 text-cyan-400 text-xs font-semibold uppercase tracking-widest mb-5">
+                Free B2B Audit Directory
+              </div>
+              <h1 className="text-4xl sm:text-5xl font-bold text-slate-50 mb-4 leading-tight">
+                Find businesses with<br /><span className="text-transparent bg-clip-text bg-gradient-to-r from-cyan-400 to-blue-500">website problems</span>
+              </h1>
+              <p className="text-slate-400 text-lg max-w-xl mx-auto">Select an industry to discover local businesses that need digital help — and see exactly what's broken.</p>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+              {NICHES.map((niche, i) => (
+                <button key={niche.id} onClick={() => goToLocation(niche)}
+                  className="group relative p-5 rounded-2xl border border-slate-700/60 bg-slate-900/50 hover:border-cyan-500/50 hover:bg-slate-800/70 transition-all duration-200 text-left hover:scale-[1.02] hover:shadow-lg hover:shadow-cyan-500/5"
+                  style={{ animationDelay: `${i * 60}ms` }}>
+                  <div className="text-3xl mb-3">{niche.icon}</div>
+                  <div className="font-semibold text-slate-100 text-sm mb-0.5 group-hover:text-cyan-300 transition-colors">{niche.label}</div>
+                  <div className="text-slate-500 text-xs mb-3">{niche.desc}</div>
+                  <div className="text-cyan-500/70 text-xs font-mono">{niche.count} listings</div>
+                  <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="w-5 h-5 rounded-full bg-cyan-500/20 flex items-center justify-center">
+                      <span className="text-cyan-400 text-xs">→</span>
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* SCREEN 2: Location Selection */}
+        {screen === 2 && (
+          <div className="max-w-lg mx-auto">
+            <button onClick={() => setScreen(1)} className="flex items-center gap-2 text-slate-500 hover:text-cyan-400 text-sm mb-8 transition-colors">
+              ← Back to niches
+            </button>
+            <div className="flex items-center gap-3 mb-8">
+              <div className="text-4xl">{selectedNiche?.icon}</div>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-50">{selectedNiche?.label}</h2>
+                <p className="text-slate-400 text-sm">Select a location to find businesses</p>
+              </div>
+            </div>
+            <div className="space-y-5">
+              <div>
+                <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">Country</label>
+                <select value={country} onChange={e => { setCountry(e.target.value); setState(""); setCity(""); }}
+                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 text-sm focus:border-cyan-500 focus:outline-none transition-colors appearance-none cursor-pointer">
+                  <option value="">Select a country...</option>
+                  {COUNTRIES.map(c => <option key={c}>{c}</option>)}
+                </select>
+              </div>
+              {country && (
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">State / Province</label>
+                  <select value={state} onChange={e => { setState(e.target.value); setCity(""); }}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 text-sm focus:border-cyan-500 focus:outline-none transition-colors appearance-none cursor-pointer">
+                    <option value="">Select a state...</option>
+                    {(STATES[country] || []).map(s => <option key={s}>{s}</option>)}
+                  </select>
+                </div>
+              )}
+              {state && (
+                <div>
+                  <label className="block text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">City</label>
+                  <select value={city} onChange={e => setCity(e.target.value)}
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-slate-100 text-sm focus:border-cyan-500 focus:outline-none transition-colors appearance-none cursor-pointer">
+                    <option value="">Select a city...</option>
+                    {(CITIES[state] || []).map(c => <option key={c}>{c}</option>)}
+                  </select>
+                </div>
+              )}
+              {city && (
+                <button onClick={goToList}
+                  className="w-full py-4 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-cyan-500/20 mt-2">
+                  Search {businesses.length} Businesses in {city} →
+                </button>
+              )}
+            </div>
+            <div className="mt-8 p-4 rounded-xl border border-slate-800 bg-slate-900/40">
+              <p className="text-xs text-slate-500 leading-relaxed">
+                <span className="text-slate-400 font-medium">How it works:</span> We scan business websites in your selected city for common technical issues — SSL problems, mobile compatibility, SEO gaps, and more — so you can identify who needs help most.
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* SCREEN 3: Business List */}
+        {screen === 3 && (
+          <div>
+            <button onClick={() => setScreen(2)} className="flex items-center gap-2 text-slate-500 hover:text-cyan-400 text-sm mb-6 transition-colors">
+              ← Change location
+            </button>
+            <div className="flex items-start justify-between mb-8 flex-wrap gap-4">
+              <div>
+                <h2 className="text-2xl font-bold text-slate-50">{selectedNiche?.label} in {city}</h2>
+                <p className="text-slate-400 text-sm mt-1">{businesses.length} businesses found · Sorted by audit score</p>
+              </div>
+              <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-red-500/10 border border-red-500/20">
+                <div className="w-2 h-2 rounded-full bg-red-400 animate-pulse" />
+                <span className="text-red-400 text-xs font-semibold">{businesses.filter(b => b.score < 50).length} need urgent help</span>
+              </div>
+            </div>
+            <div className="space-y-3">
+              {businesses.sort((a, b) => a.score - b.score).map((biz) => (
+                <div key={biz.id} onClick={() => goToReport(biz)}
+                  className="group p-5 rounded-2xl border border-slate-700/60 bg-slate-900/50 hover:border-cyan-500/40 hover:bg-slate-800/60 transition-all duration-200 cursor-pointer flex items-start gap-5">
+                  <div className="hidden sm:flex w-16 h-16 rounded-xl bg-slate-800 items-center justify-center text-2xl flex-shrink-0 border border-slate-700">
+                    {selectedNiche?.icon}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-start justify-between gap-3 flex-wrap mb-2">
+                      <h3 className="font-semibold text-slate-100 group-hover:text-cyan-300 transition-colors">{biz.name}</h3>
+                      <div className={`px-2 py-0.5 rounded-md text-xs font-mono font-semibold flex-shrink-0 ${biz.score >= 70 ? "bg-green-500/20 text-green-400" : biz.score >= 45 ? "bg-yellow-500/20 text-yellow-400" : "bg-red-500/20 text-red-400"}`}>
+                        Score: {biz.score}/100
+                      </div>
+                    </div>
+                    <p className="text-slate-500 text-xs mb-3">{biz.address} · {biz.website}</p>
+                    <div className="flex flex-wrap gap-2">
+                      {biz.issues.map(issue => (
+                        <span key={issue} className={`px-2.5 py-1 rounded-lg text-xs font-medium border ${ISSUE_TAGS[issue]?.color || "bg-slate-700 text-slate-300 border-slate-600"}`}>
+                          {issue}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="text-slate-600 group-hover:text-cyan-400 transition-colors flex-shrink-0 text-lg">›</div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* SCREEN 4: Report View */}
+        {screen === 4 && selectedBiz && (
+          <div>
+            <button onClick={() => setScreen(3)} className="flex items-center gap-2 text-slate-500 hover:text-cyan-400 text-sm mb-6 transition-colors">
+              ← Back to list
+            </button>
+
+            {/* Header Card */}
+            <div className="rounded-2xl border border-slate-700 bg-slate-900/70 p-6 mb-6">
+              <div className="flex items-start gap-5 flex-wrap">
+                <div className="w-16 h-16 rounded-xl bg-slate-800 border border-slate-700 flex items-center justify-center text-3xl flex-shrink-0">{selectedNiche?.icon}</div>
+                <div className="flex-1">
+                  <div className="flex items-start justify-between flex-wrap gap-3 mb-3">
+                    <div>
+                      <h1 className="text-2xl font-bold text-slate-50">{selectedBiz.name}</h1>
+                      <p className="text-slate-400 text-sm mt-0.5">{selectedBiz.address} · {city}, {state}</p>
+                    </div>
+                    <ScoreGauge score={selectedBiz.score} />
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mt-4">
+                    {[
+                      { icon: "📞", label: "Phone", value: selectedBiz.phone },
+                      { icon: "✉️", label: "Email", value: selectedBiz.email },
+                      { icon: "🌐", label: "Website", value: selectedBiz.website },
+                    ].map(({ icon, label, value }) => (
+                      <div key={label} className="flex items-center gap-3 px-3 py-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60">
+                        <span className="text-base">{icon}</span>
+                        <div className="min-w-0">
+                          <div className="text-slate-500 text-xs">{label}</div>
+                          <div className="text-slate-200 text-sm font-medium truncate">{value}</div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Summary Bar */}
+            <div className="flex items-center gap-3 flex-wrap mb-6">
+              <div className="text-sm font-semibold text-slate-300">Issues detected:</div>
+              {selectedBiz.issues.map(issue => (
+                <span key={issue} className={`px-3 py-1 rounded-lg text-xs font-semibold border ${ISSUE_TAGS[issue]?.color || "bg-slate-700 text-slate-300 border-slate-600"}`}>
+                  {issue}
+                </span>
+              ))}
+            </div>
+
+            {/* Issue Cards */}
+            <div className="space-y-4 mb-8">
+              <h2 className="text-lg font-semibold text-slate-100">Full Technical Audit</h2>
+              {selectedBiz.issues.map((issue, idx) => {
+                const detail = AUDIT_DETAILS[issue];
+                const priority = ISSUE_TAGS[issue]?.priority || "medium";
+                const priorityStyle = {
+                  critical: { dot: "bg-red-400", text: "text-red-400", label: "Critical", card: "border-red-500/30" },
+                  high: { dot: "bg-orange-400", text: "text-orange-400", label: "High Priority", card: "border-orange-500/30" },
+                  medium: { dot: "bg-yellow-400", text: "text-yellow-400", label: "Medium Priority", card: "border-yellow-500/20" },
+                  low: { dot: "bg-blue-400", text: "text-blue-400", label: "Low Priority", card: "border-blue-500/20" },
+                }[priority];
+                return (
+                  <div key={issue} className={`rounded-2xl border bg-slate-900/50 overflow-hidden ${priorityStyle.card}`}>
+                    <div className="px-5 py-4 border-b border-slate-800/60 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className={`w-2.5 h-2.5 rounded-full ${priorityStyle.dot} flex-shrink-0`} />
+                        <h3 className="font-semibold text-slate-100 text-sm">{issue}</h3>
+                      </div>
+                      <span className={`text-xs font-semibold ${priorityStyle.text}`}>{priorityStyle.label}</span>
+                    </div>
+                    {detail && (
+                      <div className="p-5 grid sm:grid-cols-2 gap-5">
+                        <div>
+                          <div className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">Impact</div>
+                          <p className="text-slate-300 text-sm leading-relaxed font-medium mb-4">{detail.impact}</p>
+                          <div className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">Analysis</div>
+                          <p className="text-slate-400 text-sm leading-relaxed">{detail.description}</p>
+                        </div>
+                        <div className="sm:border-l sm:border-slate-800 sm:pl-5">
+                          <div className="text-xs font-semibold uppercase tracking-widest text-cyan-500/70 mb-2">Recommended Fix</div>
+                          <p className="text-slate-300 text-sm leading-relaxed">{detail.fix}</p>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* CTA Footer */}
+            <div className="rounded-2xl border border-cyan-500/20 bg-gradient-to-br from-cyan-500/5 to-blue-600/5 p-6 text-center">
+              <h3 className="text-lg font-bold text-slate-100 mb-2">Ready to help {selectedBiz.name}?</h3>
+              <p className="text-slate-400 text-sm mb-5">This report shows {selectedBiz.issues.length} fixable issues. Businesses with these problems are actively looking for help.</p>
+              <div className="flex gap-3 justify-center flex-wrap">
+                <button className="px-6 py-3 rounded-xl bg-gradient-to-r from-cyan-500 to-blue-600 text-white font-semibold text-sm hover:opacity-90 transition-opacity shadow-lg shadow-cyan-500/20">
+                  Generate Outreach Email
+                </button>
+                <button onClick={reset} className="px-6 py-3 rounded-xl border border-slate-600 text-slate-300 font-semibold text-sm hover:border-slate-500 hover:text-slate-100 transition-all">
+                  Find More Businesses
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+      </div>
+    </div>
+  );
+}
