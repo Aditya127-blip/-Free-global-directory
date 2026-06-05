@@ -1,0 +1,499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>BizAuditPro — Free B2B Directory</title>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ["DM Sans", "sans-serif"], mono: ["DM Mono", "monospace"] }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #080c14; font-family: 'DM Sans', sans-serif; }
+    select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%2394a3b8' d='M6 8L1 3h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; }
+    .tag-critical { background: rgba(239,68,68,0.15); color: #fca5a5; border: 1px solid rgba(239,68,68,0.3); }
+    .tag-high     { background: rgba(249,115,22,0.15); color: #fdba74; border: 1px solid rgba(249,115,22,0.3); }
+    .tag-medium   { background: rgba(234,179,8,0.15);  color: #fde047; border: 1px solid rgba(234,179,8,0.3); }
+    .tag-medium-blue { background: rgba(59,130,246,0.15); color: #93c5fd; border: 1px solid rgba(59,130,246,0.3); }
+    .tag-medium-purple { background: rgba(168,85,247,0.15); color: #d8b4fe; border: 1px solid rgba(168,85,247,0.3); }
+    .tag-medium-cyan { background: rgba(6,182,212,0.15); color: #67e8f9; border: 1px solid rgba(6,182,212,0.3); }
+    .tag-low      { background: rgba(148,163,184,0.15); color: #cbd5e1; border: 1px solid rgba(148,163,184,0.3); }
+    .card-critical { border-color: rgba(239,68,68,0.3); }
+    .card-high     { border-color: rgba(249,115,22,0.3); }
+    .card-medium   { border-color: rgba(234,179,8,0.2); }
+    .card-low      { border-color: rgba(59,130,246,0.2); }
+    .dot-critical { background: #f87171; }
+    .dot-high     { background: #fb923c; }
+    .dot-medium   { background: #facc15; }
+    .dot-low      { background: #60a5fa; }
+    .text-critical { color: #f87171; }
+    .text-high     { color: #fb923c; }
+    .text-medium   { color: #facc15; }
+    .text-low      { color: #60a5fa; }
+    .niche-card:hover { border-color: rgba(34,211,238,0.5); background: rgba(30,41,59,0.7); transform: scale(1.02); box-shadow: 0 8px 30px rgba(34,211,238,0.05); }
+    .biz-card:hover { border-color: rgba(34,211,238,0.4); background: rgba(30,41,59,0.6); }
+    .biz-card:hover .biz-name { color: #67e8f9; }
+    .score-good  { color: #22c55e; }
+    .score-warn  { color: #f59e0b; }
+    .score-bad   { color: #ef4444; }
+    .score-badge-good   { background: rgba(34,197,94,0.15);  color: #86efac; }
+    .score-badge-warn   { background: rgba(245,158,11,0.15); color: #fde68a; }
+    .score-badge-bad    { background: rgba(239,68,68,0.15);  color: #fca5a5; }
+    .btn-primary { background: linear-gradient(to right, #06b6d4, #2563eb); color: white; transition: opacity 0.2s; }
+    .btn-primary:hover { opacity: 0.9; }
+    .btn-secondary { border: 1px solid #475569; color: #cbd5e1; transition: all 0.2s; }
+    .btn-secondary:hover { border-color: #64748b; color: #f1f5f9; }
+    .pulse { animation: pulse 2s cubic-bezier(0.4,0,0.6,1) infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.5} }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script type="text/babel">
+    const { useState } = React;
+
+    const NICHES = [
+      { id: "restaurants", label: "Restaurants",    icon: "🍽️", desc: "Food & Dining",         count: "14,200+" },
+      { id: "gyms",        label: "Gyms & Fitness",  icon: "💪", desc: "Health & Wellness",     count: "6,800+"  },
+      { id: "realestate",  label: "Real Estate",     icon: "🏢", desc: "Property & Agents",     count: "22,500+" },
+      { id: "medical",     label: "Medical",         icon: "🏥", desc: "Clinics & Practices",   count: "9,100+"  },
+      { id: "legal",       label: "Legal",           icon: "⚖️", desc: "Law & Attorneys",       count: "7,300+"  },
+      { id: "dental",      label: "Dental",          icon: "🦷", desc: "Dentists & Orthodontics",count: "8,900+" },
+      { id: "automotive",  label: "Automotive",      icon: "🚗", desc: "Repair & Dealerships",  count: "11,400+" },
+      { id: "beauty",      label: "Beauty & Spa",    icon: "💅", desc: "Salons & Wellness",     count: "18,600+" },
+    ];
+
+    const COUNTRIES = ["United States", "Canada", "United Kingdom", "Australia"];
+    const STATES = {
+      "United States": ["California", "New York", "Texas", "Florida", "Illinois"],
+      "Canada": ["Ontario", "British Columbia", "Quebec", "Alberta"],
+      "United Kingdom": ["England", "Scotland", "Wales"],
+      "Australia": ["New South Wales", "Victoria", "Queensland"],
+    };
+    const CITIES = {
+      "California": ["Los Angeles", "San Francisco", "San Diego", "Sacramento"],
+      "New York": ["New York City", "Buffalo", "Albany", "Rochester"],
+      "Texas": ["Houston", "Austin", "Dallas", "San Antonio"],
+      "Florida": ["Miami", "Orlando", "Tampa", "Jacksonville"],
+      "Illinois": ["Chicago", "Springfield", "Naperville"],
+      "Ontario": ["Toronto", "Ottawa", "Hamilton"],
+      "British Columbia": ["Vancouver", "Victoria", "Kelowna"],
+      "Quebec": ["Montreal", "Quebec City", "Laval"],
+      "Alberta": ["Calgary", "Edmonton", "Red Deer"],
+      "England": ["London", "Manchester", "Birmingham", "Leeds"],
+      "Scotland": ["Edinburgh", "Glasgow", "Aberdeen"],
+      "Wales": ["Cardiff", "Swansea", "Newport"],
+      "New South Wales": ["Sydney", "Newcastle", "Wollongong"],
+      "Victoria": ["Melbourne", "Geelong", "Ballarat"],
+      "Queensland": ["Brisbane", "Gold Coast", "Cairns"],
+    };
+
+    const MOCK_BUSINESSES = {
+      restaurants: [
+        { id:1, name:"The Golden Fork",    address:"142 Main St",      phone:"+1 (555) 234-8901", email:"contact@goldenfork.com",     website:"goldenfork.com",      issues:["No SSL","Slow Load","Not Mobile-Friendly"], score:38 },
+        { id:2, name:"Bella Vista Bistro", address:"88 Harbor Blvd",   phone:"+1 (555) 312-7654", email:"info@bellavista.com",         website:"bellavista.com",      issues:["No GMB","Broken Links"],                   score:61 },
+        { id:3, name:"Spice Garden",       address:"229 Oak Ave",       phone:"+1 (555) 445-1230", email:"hello@spicegarden.com",       website:"spicegarden.net",     issues:["Outdated CMS","No Reviews","Missing Schema"],score:45 },
+        { id:4, name:"The Rustic Plate",   address:"550 Elm St",        phone:"+1 (555) 667-9012", email:"eat@rusticplate.com",         website:"rusticplate.com",     issues:["No SSL"],                                  score:72 },
+      ],
+      gyms: [
+        { id:1, name:"IronPeak Fitness",   address:"300 Commerce Dr",   phone:"+1 (555) 789-0123", email:"info@ironpeak.com",           website:"ironpeak.com",        issues:["No SSL","No Lead Form","Poor SEO"],         score:29 },
+        { id:2, name:"FlexZone Gym",       address:"17 Athletic Blvd",  phone:"+1 (555) 890-3456", email:"join@flexzone.com",           website:"flexzone.net",        issues:["Slow Load","No Analytics"],                score:55 },
+        { id:3, name:"PureStrength Studio",address:"404 Fitness Way",   phone:"+1 (555) 123-6789", email:"train@purestrength.com",      website:"purestrength.com",    issues:["Broken Links","No Mobile"],                score:41 },
+      ],
+      realestate: [
+        { id:1, name:"Apex Realty Group",  address:"1 Tower Plaza",     phone:"+1 (555) 234-5678", email:"deals@apexrealty.com",        website:"apexrealty.com",      issues:["No SSL","Missing Schema","Slow Load","No Reviews"], score:22 },
+        { id:2, name:"Horizon Properties", address:"789 Skyline Dr",    phone:"+1 (555) 345-6789", email:"homes@horizonprop.com",       website:"horizonprop.com",     issues:["Outdated Design"],                         score:68 },
+        { id:3, name:"BlueSky Estates",    address:"222 Meadow Lane",   phone:"+1 (555) 456-7890", email:"list@blueskyest.com",         website:"blueskyestates.net",  issues:["No GMB","Broken Links","Poor SEO"],         score:37 },
+      ],
+      medical: [
+        { id:1, name:"WellCare Clinic",         address:"55 Health Plaza",  phone:"+1 (555) 567-8901", email:"appointments@wellcare.com",  website:"wellcare.com",    issues:["No SSL","No HIPAA Notice","Slow Load"],     score:31 },
+        { id:2, name:"Summit Family Medicine",  address:"1200 Medical Dr",  phone:"+1 (555) 678-9012", email:"care@summitfm.com",           website:"summitfm.com",    issues:["Missing Schema","No Reviews"],              score:59 },
+      ],
+      legal:      [
+        { id:1, name:"Sterling Law Group",     address:"900 Justice Ave",   phone:"+1 (555) 321-0987", email:"info@sterlinglaw.com",       website:"sterlinglaw.com",     issues:["No SSL","Poor SEO","No Reviews"],           score:34 },
+        { id:2, name:"Pinnacle Legal Advisors",address:"55 Court St",       phone:"+1 (555) 432-1098", email:"contact@pinnaclelegal.com",  website:"pinnaclelegal.com",   issues:["Slow Load","No GMB"],                      score:57 },
+      ],
+      dental:     [
+        { id:1, name:"Bright Smile Dental",    address:"77 Molar Lane",     phone:"+1 (555) 543-2109", email:"smile@brightdental.com",     website:"brightdental.com",    issues:["No SSL","Missing Schema","No Reviews"],    score:33 },
+        { id:2, name:"Apex Orthodontics",      address:"300 Braces Blvd",   phone:"+1 (555) 654-3210", email:"appointments@apexortho.com", website:"apexortho.com",       issues:["Slow Load","No GMB"],                      score:62 },
+      ],
+      automotive: [
+        { id:1, name:"FastLane Auto Repair",   address:"12 Engine Rd",      phone:"+1 (555) 765-4321", email:"fix@fastlane.com",           website:"fastlane.com",        issues:["No SSL","Outdated Design","No Lead Form"],  score:27 },
+        { id:2, name:"Premier Motors",         address:"450 Dealership Dr",  phone:"+1 (555) 876-5432", email:"sales@premiermotors.com",    website:"premiermotors.com",   issues:["Poor SEO","No Reviews"],                   score:58 },
+      ],
+      beauty:     [
+        { id:1, name:"Luxe Hair Studio",       address:"18 Glamour Ave",    phone:"+1 (555) 987-6543", email:"book@luxehair.com",          website:"luxehair.com",        issues:["No SSL","No GMB","No Lead Form"],           score:30 },
+        { id:2, name:"Serenity Spa & Wellness",address:"204 Bliss Blvd",    phone:"+1 (555) 098-7654", email:"relax@serenityspa.com",      website:"serenityspa.com",     issues:["Slow Load","Missing Schema"],               score:53 },
+      ],
+    };
+
+    const ISSUE_META = {
+      "No SSL":             { cls: "tag-critical",        priority: "critical" },
+      "Slow Load":          { cls: "tag-high",            priority: "high"     },
+      "Not Mobile-Friendly":{ cls: "tag-high",            priority: "high"     },
+      "No Mobile":          { cls: "tag-high",            priority: "high"     },
+      "No Lead Form":       { cls: "tag-medium-purple",   priority: "high"     },
+      "No GMB":             { cls: "tag-medium",          priority: "medium"   },
+      "Broken Links":       { cls: "tag-critical",        priority: "critical" },
+      "Outdated CMS":       { cls: "tag-medium-purple",   priority: "medium"   },
+      "No Reviews":         { cls: "tag-medium-blue",     priority: "medium"   },
+      "Missing Schema":     { cls: "tag-medium-cyan",     priority: "medium"   },
+      "Poor SEO":           { cls: "tag-medium",          priority: "medium"   },
+      "No Analytics":       { cls: "tag-low",             priority: "low"      },
+      "Outdated Design":    { cls: "tag-medium-purple",   priority: "medium"   },
+      "No HIPAA Notice":    { cls: "tag-critical",        priority: "critical" },
+    };
+
+    const AUDIT_DETAILS = {
+      "No SSL":             { impact:"Critical Security Risk",          description:"Your website runs on HTTP instead of HTTPS. All data between visitors and your site is unencrypted and visible to attackers. Google also penalizes non-HTTPS sites in search rankings.",                                                                                                       fix:"Get a free SSL certificate from Let's Encrypt and configure your server to redirect all HTTP to HTTPS. Update all internal links to use HTTPS." },
+      "Slow Load":          { impact:"High — User Experience & SEO",    description:"Page load time exceeds 4.2 seconds on mobile (benchmark: under 2s). Google uses Core Web Vitals as ranking signals and slow sites rank lower. 53% of users abandon pages taking over 3 seconds.",                                                                                              fix:"Compress all images (use WebP), enable browser caching, minify CSS/JS, and consider a CDN like Cloudflare. Audit with Google PageSpeed Insights." },
+      "Not Mobile-Friendly":{ impact:"High — 60%+ of Traffic Affected", description:"The site fails Google's Mobile-Friendly Test. Elements overlap, text is unreadable, and tap targets are too close. Since 2019, Google uses mobile-first indexing — your mobile experience determines your ranking.",                                                                              fix:"Redesign using a responsive framework (Bootstrap or Tailwind CSS). Test with Google's Mobile-Friendly Test tool and aim for a passing score." },
+      "No Mobile":          { impact:"High — 60%+ of Traffic Affected", description:"The site is not optimized for mobile devices. Layout breaks on smaller screens, costing you over half your potential visitors and hurting your Google ranking.",                                                                                                                                   fix:"Adopt a responsive CSS framework and test across screen sizes using Chrome DevTools and Google's Mobile-Friendly Test." },
+      "No GMB":             { impact:"Medium — Local Discovery",        description:"No Google Business Profile listing found. This is the single highest-impact free tool for local businesses. Without it, you're invisible in Google Maps and local 3-pack results.",                                                                                                               fix:"Claim or create your Google Business Profile at business.google.com. Fill out all fields, add photos, set hours, and encourage reviews." },
+      "Broken Links":       { impact:"Critical — Trust & Crawlability", description:"Multiple 404 errors detected across the site. Broken links damage user trust, increase bounce rate, and prevent search engine crawlers from indexing your pages correctly.",                                                                                                                       fix:"Run a site crawl using Screaming Frog or Ahrefs. Fix or redirect all broken URLs and set up a custom 404 page as a fallback." },
+      "Missing Schema":     { impact:"Medium — Rich Snippets",          description:"No structured data (Schema.org markup) detected. Schema helps search engines understand your content and can unlock rich results like star ratings, hours, and FAQs directly in search results.",                                                                                                   fix:"Add LocalBusiness schema to your homepage including name, address, phone, hours, and service type. Validate with Google's Structured Data Testing Tool." },
+      "No Reviews":         { impact:"Medium — Conversion & Trust",     description:"No visible customer reviews or testimonials on site or linked from Google/Yelp. Studies show 88% of consumers trust online reviews as much as personal recommendations.",                                                                                                                          fix:"Send follow-up emails to customers with a direct Google review link. Embed a review widget from Google or Trustpilot on your website." },
+      "Poor SEO":           { impact:"High — Organic Traffic Loss",     description:"Multiple on-page SEO issues detected: missing title tags, duplicate meta descriptions, and no H1 hierarchy. These are fundamental signals search engines use to understand and rank your pages.",                                                                                                   fix:"Install an SEO plugin (Yoast for WordPress) or hire a specialist. Ensure every page has a unique title (50-60 chars), meta description (150-160 chars), and logical headings." },
+      "No Lead Form":       { impact:"High — Revenue Impact",           description:"No contact or lead capture form found on the site. Visitors who want to inquire must hunt for a phone number or email, causing an estimated 30-50% conversion loss.",                                                                                                                              fix:"Add a simple contact form to your homepage and contact page. Tools like Typeform, Gravity Forms, or Webflow Forms are easy to implement." },
+      "No Analytics":       { impact:"Low-Medium — Blind Spots",        description:"No Google Analytics or tracking pixel detected. You have zero visibility into how many people visit, where they come from, or what they do. You cannot improve what you cannot measure.",                                                                                                          fix:"Install Google Analytics 4 (free) by adding the tracking script to every page. Also set up Google Search Console to track keyword rankings and impressions." },
+      "Outdated CMS":       { impact:"Medium — Security & Performance", description:"The website appears to run on an outdated CMS with known vulnerabilities. Outdated CMS versions are common targets for automated hacking attacks.",                                                                                                                                                fix:"Update your CMS (WordPress, Joomla, etc.) and all plugins/themes to their latest versions. Enable automatic security updates and run regular vulnerability scans." },
+      "Outdated Design":    { impact:"Medium — Brand Credibility",      description:"The website's visual design appears dated based on font choices, layout patterns, and color schemes. An outdated design immediately signals low credibility to potential customers.",                                                                                                               fix:"Consider a full redesign using a modern template or page builder. Modern, clean design increases conversion rates by an average of 20-35%." },
+      "No HIPAA Notice":    { impact:"Critical — Legal Compliance",     description:"No HIPAA compliance notice or privacy policy detected. Medical practices collecting patient information online are legally required to display HIPAA notices and ensure proper data security.",                                                                                                      fix:"Consult a healthcare IT attorney. Add a clear HIPAA notice, privacy policy, and ensure online forms use HIPAA-compliant hosting and encryption." },
+    };
+
+    function ScoreGauge({ score }) {
+      const color = score >= 70 ? "#22c55e" : score >= 45 ? "#f59e0b" : "#ef4444";
+      const label = score >= 70 ? "Good" : score >= 45 ? "Needs Work" : "Critical";
+      const r = 36, circ = 2 * Math.PI * r;
+      const offset = circ - (score / 100) * circ;
+      return (
+        <div style={{ display:"flex", flexDirection:"column", alignItems:"center", gap:"4px" }}>
+          <svg width="96" height="96" viewBox="0 0 96 96">
+            <circle cx="48" cy="48" r={r} fill="none" stroke="#1e293b" strokeWidth="8" />
+            <circle cx="48" cy="48" r={r} fill="none" stroke={color} strokeWidth="8"
+              strokeDasharray={circ} strokeDashoffset={offset} strokeLinecap="round"
+              transform="rotate(-90 48 48)" style={{ transition:"stroke-dashoffset 1s ease" }} />
+            <text x="48" y="54" textAnchor="middle" fill={color} fontSize="20" fontWeight="700" fontFamily="DM Mono, monospace">{score}</text>
+          </svg>
+          <span style={{ color, fontSize:"11px", fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase" }}>{label}</span>
+        </div>
+      );
+    }
+
+    function IssueBadge({ issue }) {
+      const meta = ISSUE_META[issue] || { cls: "tag-low" };
+      return <span className={`${meta.cls} px-2.5 py-1 rounded-lg text-xs font-semibold`} style={{ display:"inline-block" }}>{issue}</span>;
+    }
+
+    function App() {
+      const [screen, setScreen]           = useState(1);
+      const [selectedNiche, setNiche]     = useState(null);
+      const [country, setCountry]         = useState("");
+      const [state, setState]             = useState("");
+      const [city, setCity]               = useState("");
+      const [selectedBiz, setBiz]         = useState(null);
+
+      const businesses = (MOCK_BUSINESSES[selectedNiche && selectedNiche.id] || []).slice().sort((a,b) => a.score - b.score);
+
+      const goToLocation = (niche) => { setNiche(niche); setScreen(2); };
+      const goToList     = ()      => { if (country && state && city) setScreen(3); };
+      const goToReport   = (biz)   => { setBiz(biz); setScreen(4); };
+      const reset        = ()      => { setScreen(1); setNiche(null); setCountry(""); setState(""); setCity(""); setBiz(null); };
+
+      const stepNames = ["Niche","Location","Businesses","Report"];
+
+      return (
+        <div style={{ minHeight:"100vh", background:"#080c14", color:"#f1f5f9", fontFamily:"'DM Sans',sans-serif" }}>
+
+          {/* NAV */}
+          <nav style={{ borderBottom:"1px solid rgba(51,65,85,0.6)", padding:"14px 24px", display:"flex", alignItems:"center", justifyContent:"space-between", position:"sticky", top:0, zIndex:50, background:"rgba(8,12,20,0.9)", backdropFilter:"blur(8px)" }}>
+            <div onClick={reset} style={{ display:"flex", alignItems:"center", gap:"10px", cursor:"pointer" }}>
+              <div style={{ width:32, height:32, borderRadius:8, background:"linear-gradient(135deg,#22d3ee,#2563eb)", display:"flex", alignItems:"center", justifyContent:"center", fontWeight:700, fontSize:14, color:"white" }}>B</div>
+              <span style={{ fontWeight:600, color:"#f1f5f9", letterSpacing:"-0.02em" }}>BizAudit<span style={{ color:"#22d3ee" }}>Pro</span></span>
+            </div>
+            <div style={{ display:"flex", alignItems:"center", gap:6, fontSize:13, color:"#94a3b8" }}>
+              {stepNames.map((label, i) => {
+                const n = i + 1;
+                return (
+                  <React.Fragment key={n}>
+                    <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+                      <div style={{ width:24, height:24, borderRadius:"50%", display:"flex", alignItems:"center", justifyContent:"center", fontSize:11, fontWeight:600, background: screen >= n ? "#06b6d4" : "#1e293b", color: screen >= n ? "#080c14" : "#64748b", transition:"all 0.3s" }}>{n}</div>
+                      <span style={{ display: window.innerWidth < 480 ? "none" : "block", color: screen === n ? "#22d3ee" : screen > n ? "#94a3b8" : "#334155", transition:"color 0.3s" }}>{label}</span>
+                    </div>
+                    {n < 4 && <span style={{ color:"#1e293b", margin:"0 2px" }}>›</span>}
+                  </React.Fragment>
+                );
+              })}
+            </div>
+          </nav>
+
+          <div style={{ maxWidth:900, margin:"0 auto", padding:"40px 16px 60px" }}>
+
+            {/* ── SCREEN 1: NICHE GRID ── */}
+            {screen === 1 && (
+              <div>
+                <div style={{ textAlign:"center", marginBottom:48 }}>
+                  <div style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"6px 16px", borderRadius:999, background:"rgba(6,182,212,0.1)", border:"1px solid rgba(6,182,212,0.2)", color:"#22d3ee", fontSize:11, fontWeight:700, letterSpacing:"0.12em", textTransform:"uppercase", marginBottom:20 }}>
+                    Free B2B Audit Directory
+                  </div>
+                  <h1 style={{ fontSize:"clamp(28px,5vw,48px)", fontWeight:700, color:"#f8fafc", margin:"0 0 16px", lineHeight:1.2 }}>
+                    Find businesses with<br />
+                    <span style={{ background:"linear-gradient(90deg,#22d3ee,#3b82f6)", WebkitBackgroundClip:"text", WebkitTextFillColor:"transparent" }}>website problems</span>
+                  </h1>
+                  <p style={{ color:"#94a3b8", fontSize:17, maxWidth:520, margin:"0 auto" }}>Select an industry to discover local businesses that need digital help — and see exactly what's broken.</p>
+                </div>
+
+                <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(180px,1fr))", gap:16 }}>
+                  {NICHES.map((niche) => (
+                    <button key={niche.id} onClick={() => goToLocation(niche)} className="niche-card"
+                      style={{ position:"relative", padding:"20px", borderRadius:16, border:"1px solid rgba(51,65,85,0.6)", background:"rgba(15,23,42,0.5)", textAlign:"left", cursor:"pointer", transition:"all 0.2s", color:"inherit" }}>
+                      <div style={{ fontSize:32, marginBottom:12 }}>{niche.icon}</div>
+                      <div style={{ fontWeight:600, color:"#f1f5f9", fontSize:14, marginBottom:2 }}>{niche.label}</div>
+                      <div style={{ color:"#64748b", fontSize:12, marginBottom:12 }}>{niche.desc}</div>
+                      <div style={{ color:"rgba(6,182,212,0.7)", fontSize:12, fontFamily:"'DM Mono',monospace" }}>{niche.count} listings</div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* ── SCREEN 2: LOCATION ── */}
+            {screen === 2 && (
+              <div style={{ maxWidth:480, margin:"0 auto" }}>
+                <button onClick={() => setScreen(1)} style={{ display:"flex", alignItems:"center", gap:8, color:"#64748b", fontSize:13, marginBottom:32, background:"none", border:"none", cursor:"pointer", transition:"color 0.2s" }}
+                  onMouseOver={e => e.currentTarget.style.color="#22d3ee"} onMouseOut={e => e.currentTarget.style.color="#64748b"}>
+                  ← Back to niches
+                </button>
+
+                <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:32 }}>
+                  <span style={{ fontSize:40 }}>{selectedNiche && selectedNiche.icon}</span>
+                  <div>
+                    <h2 style={{ fontSize:24, fontWeight:700, color:"#f8fafc", margin:0 }}>{selectedNiche && selectedNiche.label}</h2>
+                    <p style={{ color:"#64748b", fontSize:13, margin:"4px 0 0" }}>Select a location to find businesses</p>
+                  </div>
+                </div>
+
+                <div style={{ display:"flex", flexDirection:"column", gap:20 }}>
+                  {/* Country */}
+                  <div>
+                    <label style={{ display:"block", fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", color:"#64748b", marginBottom:8 }}>Country</label>
+                    <select value={country} onChange={e => { setCountry(e.target.value); setState(""); setCity(""); }}
+                      style={{ width:"100%", background:"#0f172a", border:"1px solid #334155", borderRadius:12, padding:"12px 40px 12px 16px", color:"#f1f5f9", fontSize:14, outline:"none", appearance:"none", cursor:"pointer" }}>
+                      <option value="">Select a country...</option>
+                      {COUNTRIES.map(c => <option key={c}>{c}</option>)}
+                    </select>
+                  </div>
+
+                  {country && (
+                    <div>
+                      <label style={{ display:"block", fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", color:"#64748b", marginBottom:8 }}>State / Province</label>
+                      <select value={state} onChange={e => { setState(e.target.value); setCity(""); }}
+                        style={{ width:"100%", background:"#0f172a", border:"1px solid #334155", borderRadius:12, padding:"12px 40px 12px 16px", color:"#f1f5f9", fontSize:14, outline:"none", appearance:"none", cursor:"pointer" }}>
+                        <option value="">Select a state...</option>
+                        {(STATES[country] || []).map(s => <option key={s}>{s}</option>)}
+                      </select>
+                    </div>
+                  )}
+
+                  {state && (
+                    <div>
+                      <label style={{ display:"block", fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", color:"#64748b", marginBottom:8 }}>City</label>
+                      <select value={city} onChange={e => setCity(e.target.value)}
+                        style={{ width:"100%", background:"#0f172a", border:"1px solid #334155", borderRadius:12, padding:"12px 40px 12px 16px", color:"#f1f5f9", fontSize:14, outline:"none", appearance:"none", cursor:"pointer" }}>
+                        <option value="">Select a city...</option>
+                        {(CITIES[state] || []).map(c => <option key={c}>{c}</option>)}
+                      </select>
+                    </div>
+                  )}
+
+                  {city && (
+                    <button onClick={goToList} className="btn-primary"
+                      style={{ width:"100%", padding:"14px", borderRadius:12, border:"none", fontWeight:600, fontSize:14, cursor:"pointer", boxShadow:"0 8px 24px rgba(6,182,212,0.2)", marginTop:4 }}>
+                      Search {businesses.length} Businesses in {city} →
+                    </button>
+                  )}
+                </div>
+
+                <div style={{ marginTop:32, padding:16, borderRadius:12, border:"1px solid #1e293b", background:"rgba(15,23,42,0.4)" }}>
+                  <p style={{ margin:0, fontSize:12, color:"#475569", lineHeight:1.7 }}>
+                    <span style={{ color:"#64748b", fontWeight:600 }}>How it works: </span>
+                    We scan business websites in your selected city for common technical issues — SSL problems, mobile compatibility, SEO gaps, and more.
+                  </p>
+                </div>
+              </div>
+            )}
+
+            {/* ── SCREEN 3: BUSINESS LIST ── */}
+            {screen === 3 && (
+              <div>
+                <button onClick={() => setScreen(2)} style={{ display:"flex", alignItems:"center", gap:8, color:"#64748b", fontSize:13, marginBottom:24, background:"none", border:"none", cursor:"pointer", transition:"color 0.2s" }}
+                  onMouseOver={e => e.currentTarget.style.color="#22d3ee"} onMouseOut={e => e.currentTarget.style.color="#64748b"}>
+                  ← Change location
+                </button>
+
+                <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", flexWrap:"wrap", gap:16, marginBottom:32 }}>
+                  <div>
+                    <h2 style={{ fontSize:24, fontWeight:700, color:"#f8fafc", margin:0 }}>{selectedNiche && selectedNiche.label} in {city}</h2>
+                    <p style={{ color:"#64748b", fontSize:13, margin:"6px 0 0" }}>{businesses.length} businesses found · Sorted by audit score</p>
+                  </div>
+                  <div style={{ display:"flex", alignItems:"center", gap:8, padding:"8px 14px", borderRadius:10, background:"rgba(239,68,68,0.1)", border:"1px solid rgba(239,68,68,0.2)" }}>
+                    <div className="pulse" style={{ width:8, height:8, borderRadius:"50%", background:"#f87171" }} />
+                    <span style={{ color:"#f87171", fontSize:12, fontWeight:600 }}>{businesses.filter(b => b.score < 50).length} need urgent help</span>
+                  </div>
+                </div>
+
+                <div style={{ display:"flex", flexDirection:"column", gap:12 }}>
+                  {businesses.map(biz => {
+                    const badgeClass = biz.score >= 70 ? "score-badge-good" : biz.score >= 45 ? "score-badge-warn" : "score-badge-bad";
+                    return (
+                      <div key={biz.id} onClick={() => goToReport(biz)} className="biz-card"
+                        style={{ padding:"20px", borderRadius:16, border:"1px solid rgba(51,65,85,0.6)", background:"rgba(15,23,42,0.5)", cursor:"pointer", display:"flex", alignItems:"flex-start", gap:20, transition:"all 0.2s" }}>
+                        <div style={{ width:56, height:56, borderRadius:12, background:"#1e293b", border:"1px solid #334155", display:"flex", alignItems:"center", justifyContent:"center", fontSize:26, flexShrink:0 }}>
+                          {selectedNiche && selectedNiche.icon}
+                        </div>
+                        <div style={{ flex:1, minWidth:0 }}>
+                          <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", flexWrap:"wrap", gap:8, marginBottom:6 }}>
+                            <h3 className="biz-name" style={{ fontWeight:600, color:"#f1f5f9", margin:0, fontSize:15, transition:"color 0.2s" }}>{biz.name}</h3>
+                            <span className={badgeClass} style={{ padding:"2px 10px", borderRadius:6, fontSize:12, fontFamily:"'DM Mono',monospace", fontWeight:600, flexShrink:0 }}>
+                              Score: {biz.score}/100
+                            </span>
+                          </div>
+                          <p style={{ color:"#64748b", fontSize:12, margin:"0 0 12px" }}>{biz.address} · {biz.website}</p>
+                          <div style={{ display:"flex", flexWrap:"wrap", gap:6 }}>
+                            {biz.issues.map(issue => <IssueBadge key={issue} issue={issue} />)}
+                          </div>
+                        </div>
+                        <span style={{ color:"#334155", fontSize:18, flexShrink:0 }}>›</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* ── SCREEN 4: REPORT ── */}
+            {screen === 4 && selectedBiz && (
+              <div>
+                <button onClick={() => setScreen(3)} style={{ display:"flex", alignItems:"center", gap:8, color:"#64748b", fontSize:13, marginBottom:24, background:"none", border:"none", cursor:"pointer" }}
+                  onMouseOver={e => e.currentTarget.style.color="#22d3ee"} onMouseOut={e => e.currentTarget.style.color="#64748b"}>
+                  ← Back to list
+                </button>
+
+                {/* Header card */}
+                <div style={{ borderRadius:16, border:"1px solid #334155", background:"rgba(15,23,42,0.7)", padding:24, marginBottom:20 }}>
+                  <div style={{ display:"flex", alignItems:"flex-start", gap:20, flexWrap:"wrap" }}>
+                    <div style={{ width:60, height:60, borderRadius:12, background:"#1e293b", border:"1px solid #334155", display:"flex", alignItems:"center", justifyContent:"center", fontSize:28, flexShrink:0 }}>
+                      {selectedNiche && selectedNiche.icon}
+                    </div>
+                    <div style={{ flex:1, minWidth:200 }}>
+                      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", flexWrap:"wrap", gap:12, marginBottom:12 }}>
+                        <div>
+                          <h1 style={{ fontSize:24, fontWeight:700, color:"#f8fafc", margin:0 }}>{selectedBiz.name}</h1>
+                          <p style={{ color:"#64748b", fontSize:13, margin:"4px 0 0" }}>{selectedBiz.address} · {city}, {state}</p>
+                        </div>
+                        <ScoreGauge score={selectedBiz.score} />
+                      </div>
+                      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:10 }}>
+                        {[
+                          { icon:"📞", label:"Phone",   value: selectedBiz.phone   },
+                          { icon:"✉️", label:"Email",   value: selectedBiz.email   },
+                          { icon:"🌐", label:"Website", value: selectedBiz.website },
+                        ].map(({ icon, label, value }) => (
+                          <div key={label} style={{ display:"flex", alignItems:"center", gap:10, padding:"10px 12px", borderRadius:10, background:"rgba(30,41,59,0.6)", border:"1px solid rgba(51,65,85,0.6)" }}>
+                            <span style={{ fontSize:16 }}>{icon}</span>
+                            <div style={{ minWidth:0 }}>
+                              <div style={{ color:"#64748b", fontSize:11 }}>{label}</div>
+                              <div style={{ color:"#e2e8f0", fontSize:13, fontWeight:500, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{value}</div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Issue summary */}
+                <div style={{ display:"flex", alignItems:"center", flexWrap:"wrap", gap:8, marginBottom:24 }}>
+                  <span style={{ fontSize:13, fontWeight:600, color:"#cbd5e1" }}>Issues detected:</span>
+                  {selectedBiz.issues.map(issue => <IssueBadge key={issue} issue={issue} />)}
+                </div>
+
+                {/* Audit cards */}
+                <h2 style={{ fontSize:18, fontWeight:600, color:"#f1f5f9", marginBottom:16 }}>Full Technical Audit</h2>
+                <div style={{ display:"flex", flexDirection:"column", gap:16, marginBottom:32 }}>
+                  {selectedBiz.issues.map(issue => {
+                    const detail   = AUDIT_DETAILS[issue];
+                    const priority = (ISSUE_META[issue] || {}).priority || "medium";
+                    const styles   = {
+                      critical: { dot:"dot-critical", text:"text-critical", label:"Critical",        border:"card-critical" },
+                      high:     { dot:"dot-high",     text:"text-high",     label:"High Priority",   border:"card-high"     },
+                      medium:   { dot:"dot-medium",   text:"text-medium",   label:"Medium Priority", border:"card-medium"   },
+                      low:      { dot:"dot-low",      text:"text-low",      label:"Low Priority",    border:"card-low"      },
+                    }[priority];
+                    return (
+                      <div key={issue} className={styles.border}
+                        style={{ borderRadius:16, border:"1px solid", background:"rgba(15,23,42,0.5)", overflow:"hidden" }}>
+                        <div style={{ padding:"14px 20px", borderBottom:"1px solid rgba(30,41,59,0.6)", display:"flex", alignItems:"center", justifyContent:"space-between" }}>
+                          <div style={{ display:"flex", alignItems:"center", gap:10 }}>
+                            <div className={styles.dot} style={{ width:10, height:10, borderRadius:"50%", flexShrink:0 }} />
+                            <span style={{ fontWeight:600, color:"#f1f5f9", fontSize:14 }}>{issue}</span>
+                          </div>
+                          <span className={styles.text} style={{ fontSize:12, fontWeight:700 }}>{styles.label}</span>
+                        </div>
+                        {detail && (
+                          <div style={{ padding:20, display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(220px,1fr))", gap:20 }}>
+                            <div>
+                              <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", color:"#64748b", marginBottom:8 }}>Impact</div>
+                              <p style={{ color:"#cbd5e1", fontSize:13, lineHeight:1.6, fontWeight:500, margin:"0 0 16px" }}>{detail.impact}</p>
+                              <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", color:"#64748b", marginBottom:8 }}>Analysis</div>
+                              <p style={{ color:"#94a3b8", fontSize:13, lineHeight:1.7, margin:0 }}>{detail.description}</p>
+                            </div>
+                            <div style={{ borderLeft:"1px solid rgba(30,41,59,0.8)", paddingLeft:20 }}>
+                              <div style={{ fontSize:11, fontWeight:700, textTransform:"uppercase", letterSpacing:"0.1em", color:"rgba(6,182,212,0.7)", marginBottom:8 }}>Recommended Fix</div>
+                              <p style={{ color:"#cbd5e1", fontSize:13, lineHeight:1.7, margin:0 }}>{detail.fix}</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+
+                {/* CTA footer */}
+                <div style={{ borderRadius:16, border:"1px solid rgba(6,182,212,0.2)", background:"linear-gradient(135deg,rgba(6,182,212,0.05),rgba(37,99,235,0.05))", padding:28, textAlign:"center" }}>
+                  <h3 style={{ fontSize:18, fontWeight:700, color:"#f8fafc", margin:"0 0 8px" }}>Ready to help {selectedBiz.name}?</h3>
+                  <p style={{ color:"#94a3b8", fontSize:14, margin:"0 0 24px" }}>This report shows {selectedBiz.issues.length} fixable issues. Businesses like this are actively looking for help.</p>
+                  <div style={{ display:"flex", gap:12, justifyContent:"center", flexWrap:"wrap" }}>
+                    <button className="btn-primary" style={{ padding:"12px 24px", borderRadius:12, border:"none", fontWeight:600, fontSize:14, cursor:"pointer", boxShadow:"0 8px 24px rgba(6,182,212,0.2)" }}>
+                      Generate Outreach Email
+                    </button>
+                    <button onClick={reset} className="btn-secondary" style={{ padding:"12px 24px", borderRadius:12, fontWeight:600, fontSize:14, cursor:"pointer", background:"none" }}>
+                      Find More Businesses
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+          </div>
+        </div>
+      );
+    }
+
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(<App />);
+  </script>
+</body>
+</html>
