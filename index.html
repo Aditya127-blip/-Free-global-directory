@@ -1,0 +1,888 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Nexus Global B2B Directory</title>
+
+<!-- Fonts -->
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700;900&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com"></script>
+
+<!-- React + ReactDOM + Babel -->
+<script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+<!-- Lucide Icons -->
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        colors: {
+          navy: {
+            950: '#03060f',
+            900: '#060d1f',
+            800: '#0b1733',
+            700: '#111f44',
+            600: '#182a5e',
+            500: '#1e3478',
+          },
+          gold: {
+            300: '#f5d87a',
+            400: '#e8c44a',
+            500: '#d4a820',
+            600: '#b8900a',
+          },
+          slate2: {
+            400: '#94a3c8',
+            300: '#bbc8e8',
+          }
+        },
+        fontFamily: {
+          display: ['Playfair Display', 'serif'],
+          mono: ['DM Mono', 'monospace'],
+          sans: ['DM Sans', 'sans-serif'],
+        },
+      }
+    }
+  }
+</script>
+
+<style>
+  * { box-sizing: border-box; }
+  body {
+    background: #03060f;
+    color: #e2e8f8;
+    font-family: 'DM Sans', sans-serif;
+    margin: 0;
+    padding: 0;
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* Scrollbar */
+  ::-webkit-scrollbar { width: 6px; }
+  ::-webkit-scrollbar-track { background: #060d1f; }
+  ::-webkit-scrollbar-thumb { background: #1e3478; border-radius: 3px; }
+
+  /* Grid background texture */
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(30,52,120,0.08) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(30,52,120,0.08) 1px, transparent 1px);
+    background-size: 48px 48px;
+  }
+
+  /* Noise overlay */
+  .noise::after {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 0;
+    opacity: 0.4;
+  }
+
+  /* Gold gradient text */
+  .gold-text {
+    background: linear-gradient(135deg, #f5d87a 0%, #d4a820 50%, #f5d87a 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  /* Glow effects */
+  .gold-glow { box-shadow: 0 0 20px rgba(212,168,32,0.25), 0 0 40px rgba(212,168,32,0.1); }
+  .card-glow { box-shadow: 0 4px 24px rgba(6,13,31,0.8), 0 1px 0 rgba(255,255,255,0.04) inset; }
+  .card-hover:hover { box-shadow: 0 8px 40px rgba(6,13,31,0.9), 0 0 1px rgba(212,168,32,0.3), 0 1px 0 rgba(255,255,255,0.06) inset; transform: translateY(-2px); transition: all 0.25s ease; }
+
+  /* Blur paywall */
+  .blur-locked { filter: blur(5px); user-select: none; pointer-events: none; }
+
+  /* Sticky top */
+  .sticky-bar { position: sticky; top: 0; z-index: 50; backdrop-filter: blur(20px); }
+
+  /* Badge pulse */
+  @keyframes pulse-gold {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(212,168,32,0.4); }
+    50% { box-shadow: 0 0 0 6px rgba(212,168,32,0); }
+  }
+  .badge-pulse { animation: pulse-gold 2.5s ease-in-out infinite; }
+
+  /* Modal backdrop */
+  .modal-backdrop {
+    position: fixed; inset: 0; z-index: 1000;
+    background: rgba(3,6,15,0.92);
+    backdrop-filter: blur(12px);
+    display: flex; align-items: center; justify-content: center;
+    padding: 16px;
+  }
+
+  /* Selector styling */
+  select {
+    background: #0b1733;
+    color: #bbc8e8;
+    border: 1px solid rgba(30,52,120,0.6);
+    border-radius: 8px;
+    padding: 8px 32px 8px 12px;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3c8' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+  }
+  select:focus { border-color: rgba(212,168,32,0.5); }
+  select option { background: #0b1733; }
+
+  /* Input styling */
+  input[type="text"], input[type="number"] {
+    background: #0b1733;
+    color: #e2e8f8;
+    border: 1px solid rgba(30,52,120,0.6);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+    width: 100%;
+  }
+  input:focus { border-color: rgba(212,168,32,0.5); }
+  input::placeholder { color: #4a5a84; }
+
+  /* Divider */
+  .divider { height: 1px; background: linear-gradient(90deg, transparent, rgba(30,52,120,0.6), transparent); }
+
+  /* Category color map */
+  .cat-tech { background: rgba(59,130,246,0.15); color: #93c5fd; border-color: rgba(59,130,246,0.3); }
+  .cat-finance { background: rgba(212,168,32,0.12); color: #f5d87a; border-color: rgba(212,168,32,0.3); }
+  .cat-health { background: rgba(16,185,129,0.12); color: #6ee7b7; border-color: rgba(16,185,129,0.3); }
+  .cat-manufacturing { background: rgba(249,115,22,0.12); color: #fdba74; border-color: rgba(249,115,22,0.3); }
+  .cat-retail { background: rgba(168,85,247,0.12); color: #d8b4fe; border-color: rgba(168,85,247,0.3); }
+  .cat-logistics { background: rgba(20,184,166,0.12); color: #5eead4; border-color: rgba(20,184,166,0.3); }
+  .cat-energy { background: rgba(234,179,8,0.12); color: #fde047; border-color: rgba(234,179,8,0.3); }
+  .cat-real-estate { background: rgba(244,63,94,0.12); color: #fda4af; border-color: rgba(244,63,94,0.3); }
+  .cat-default { background: rgba(148,163,200,0.1); color: #94a3c8; border-color: rgba(148,163,200,0.25); }
+
+  /* Scrollfade in */
+  @keyframes fadeSlideUp {
+    from { opacity: 0; transform: translateY(18px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .card-animate { animation: fadeSlideUp 0.4s ease both; }
+  .card-animate:nth-child(1) { animation-delay: 0.05s; }
+  .card-animate:nth-child(2) { animation-delay: 0.1s; }
+  .card-animate:nth-child(3) { animation-delay: 0.15s; }
+  .card-animate:nth-child(4) { animation-delay: 0.2s; }
+  .card-animate:nth-child(5) { animation-delay: 0.25s; }
+  .card-animate:nth-child(6) { animation-delay: 0.3s; }
+
+  /* Range input */
+  input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    background: transparent;
+    width: 100%;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-runnable-track {
+    background: linear-gradient(90deg, #d4a820, #f5d87a);
+    height: 4px; border-radius: 2px;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 18px; height: 18px;
+    background: #f5d87a;
+    border-radius: 50%;
+    margin-top: -7px;
+    box-shadow: 0 0 8px rgba(212,168,32,0.5);
+  }
+
+  /* Spinner */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .spinner { animation: spin 0.8s linear infinite; }
+
+  /* Shimmer loading */
+  @keyframes shimmer {
+    0% { background-position: -600px 0; }
+    100% { background-position: 600px 0; }
+  }
+  .shimmer {
+    background: linear-gradient(90deg, #0b1733 25%, #111f44 50%, #0b1733 75%);
+    background-size: 600px 100%;
+    animation: shimmer 1.4s ease-in-out infinite;
+    border-radius: 6px;
+  }
+</style>
+</head>
+<body class="grid-bg noise">
+<div id="root"></div>
+
+<script type="text/babel">
+// ─────────────────────────────────────────────
+// CONFIGURATION — replace with your CSV export URL
+// ─────────────────────────────────────────────
+const GOOGLE_SHEET_URL = 'YOUR_GOOGLE_SHEET_CSV_LINK_HERE';
+
+// Free trial limit
+const MAX_FREE_TRIALS = 3;
+
+// ─────────────────────────────────────────────
+// DEMO DATA (used when no sheet URL is set)
+// ─────────────────────────────────────────────
+const DEMO_DATA = [
+  { Name: 'Quantum Ventures Ltd', Category: 'Finance', Country: 'United States', State: 'New York', City: 'New York City', Phone: '+1 (212) 555-0194', Email: 'contact@quantumventures.com', Address: '245 Park Avenue, Suite 3900, New York, NY 10167' },
+  { Name: 'Apex Industrial Systems', Category: 'Manufacturing', Country: 'Germany', State: 'Bavaria', City: 'Munich', Phone: '+49 89 555 2847', Email: 'info@apexindustrial.de', Address: 'Industriestraße 82, 80339 München' },
+  { Name: 'NovaTech Solutions', Category: 'Tech', Country: 'United Kingdom', State: 'England', City: 'London', Phone: '+44 20 7946 0320', Email: 'hello@novatech.co.uk', Address: '30 St Mary Axe, London EC3A 8EP' },
+  { Name: 'Meridian Health Group', Category: 'Health', Country: 'Canada', State: 'Ontario', City: 'Toronto', Phone: '+1 (416) 555-7832', Email: 'admin@meridianhealth.ca', Address: '100 King Street West, Toronto, ON M5X 1C7' },
+  { Name: 'Pacific Rim Logistics', Category: 'Logistics', Country: 'Japan', State: 'Tokyo', City: 'Shibuya', Phone: '+81 3-5555-8821', Email: 'ops@pacificrimlogistics.jp', Address: '2-21-1 Dogenzaka, Shibuya City, Tokyo 150-0043' },
+  { Name: 'Solaris Energy Corp', Category: 'Energy', Country: 'Australia', State: 'Queensland', City: 'Brisbane', Phone: '+61 7 5555 3299', Email: 'partnerships@solarisec.com.au', Address: '123 Eagle Street, Brisbane QLD 4000' },
+  { Name: 'Vertex Real Estate', Category: 'Real Estate', Country: 'United Arab Emirates', State: 'Dubai', City: 'Dubai', Phone: '+971 4 555 8844', Email: 'deals@vertexrealestate.ae', Address: 'Level 45, Burj Khalifa, Downtown Dubai 00000' },
+  { Name: 'GlobalMart Retail Co.', Category: 'Retail', Country: 'United States', State: 'California', City: 'Los Angeles', Phone: '+1 (310) 555-4422', Email: 'biz@globalmart.us', Address: '8500 Beverly Blvd, Los Angeles, CA 90048' },
+  { Name: 'Ironclad Fabrication', Category: 'Manufacturing', Country: 'United States', State: 'Texas', City: 'Houston', Phone: '+1 (713) 555-0083', Email: 'sales@ironcladfab.com', Address: '4200 Westheimer Rd, Houston, TX 77027' },
+  { Name: 'ClearPath Wealth', Category: 'Finance', Country: 'Switzerland', State: 'Zurich', City: 'Zurich', Phone: '+41 44 555 3312', Email: 'clients@clearpathwealth.ch', Address: 'Bahnhofstrasse 45, 8001 Zürich' },
+  { Name: 'DataSphere Analytics', Category: 'Tech', Country: 'Singapore', State: 'Central Region', City: 'Singapore', Phone: '+65 6555 7721', Email: 'insights@datasphere.sg', Address: '1 Raffles Place, #40-02, Singapore 048616' },
+  { Name: 'Evergreen Supply Chain', Category: 'Logistics', Country: 'Netherlands', State: 'South Holland', City: 'Rotterdam', Phone: '+31 10 555 6600', Email: 'info@evergreensupply.nl', Address: 'Wilhelminakade 909, 3072 AP Rotterdam' },
+];
+
+// ─────────────────────────────────────────────
+// CSV PARSER
+// ─────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.trim().split('\n');
+  if (lines.length < 2) return [];
+  const headers = lines[0].split(',').map(h => h.trim().replace(/^"|"$/g, ''));
+  return lines.slice(1).map(line => {
+    const values = [];
+    let cur = '';
+    let inQuotes = false;
+    for (let i = 0; i < line.length; i++) {
+      const ch = line[i];
+      if (ch === '"') { inQuotes = !inQuotes; }
+      else if (ch === ',' && !inQuotes) { values.push(cur.trim()); cur = ''; }
+      else { cur += ch; }
+    }
+    values.push(cur.trim());
+    const obj = {};
+    headers.forEach((h, i) => { obj[h] = (values[i] || '').replace(/^"|"$/g, ''); });
+    return obj;
+  }).filter(row => row.Name && row.Name.trim() !== '');
+}
+
+// ─────────────────────────────────────────────
+// CATEGORY BADGE COLOR
+// ─────────────────────────────────────────────
+function getCatClass(cat) {
+  if (!cat) return 'cat-default';
+  const c = cat.toLowerCase().replace(/\s+/g, '-');
+  const map = { 'tech': 'cat-tech', 'technology': 'cat-tech', 'finance': 'cat-finance', 'financial': 'cat-finance', 'health': 'cat-health', 'healthcare': 'cat-health', 'manufacturing': 'cat-manufacturing', 'retail': 'cat-retail', 'logistics': 'cat-logistics', 'energy': 'cat-energy', 'real-estate': 'cat-real-estate' };
+  return map[c] || 'cat-default';
+}
+
+// ─────────────────────────────────────────────
+// LUCIDE ICON COMPONENT
+// ─────────────────────────────────────────────
+const Icon = ({ name, size = 16, className = '' }) => {
+  const ref = React.useRef(null);
+  React.useEffect(() => {
+    if (ref.current && window.lucide) {
+      ref.current.innerHTML = '';
+      const iconFn = window.lucide[name.replace(/-([a-z])/g, (_, c) => c.toUpperCase())];
+      if (iconFn) {
+        const svg = iconFn([size, size, [], {}, []]);
+        ref.current.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${lucide[Object.keys(lucide).find(k => k.toLowerCase() === name.toLowerCase().replace(/-/g,''))]?.[2]?.map?.(n => typeof n === 'string' ? n : '').join('') || ''}</svg>`;
+      }
+    }
+  }, [name, size]);
+  return React.createElement('span', { ref, className, style: { display: 'inline-flex', alignItems: 'center' } });
+};
+
+// Simple SVG icon components (inline, no dependency)
+const SvgIcon = ({ path, size = 16, className = '' }) => (
+  React.createElement('svg', { xmlns: 'http://www.w3.org/2000/svg', width: size, height: size, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: '1.8', strokeLinecap: 'round', strokeLinejoin: 'round', className },
+    React.createElement('path', { d: path })
+  )
+);
+
+const Icons = {
+  Search: ({ size = 16, className = '' }) => React.createElement('svg', { xmlns:'http://www.w3.org/2000/svg', width: size, height: size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:'1.8', strokeLinecap:'round', strokeLinejoin:'round', className }, React.createElement('circle', {cx:'11',cy:'11',r:'8'}), React.createElement('line', {x1:'21',y1:'21',x2:'16.65',y2:'16.65'})),
+  Phone: ({ size = 16, className = '' }) => React.createElement('svg', { xmlns:'http://www.w3.org/2000/svg', width: size, height: size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:'1.8', strokeLinecap:'round', strokeLinejoin:'round', className }, React.createElement('path', {d:'M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.63A2 2 0 012 .82h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 8.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 16.92z'})),
+  Mail: ({ size = 16, className = '' }) => React.createElement('svg', { xmlns:'http://www.w3.org/2000/svg', width: size, height: size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:'1.8', strokeLinecap:'round', strokeLinejoin:'round', className }, React.createElement('path', {d:'M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z'}), React.createElement('polyline', {points:'22,6 12,13 2,6'})),
+  MapPin: ({ size = 16, className = '' }) => React.createElement('svg', { xmlns:'http://www.w3.org/2000/svg', width: size, height: size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:'1.8', strokeLinecap:'round', strokeLinejoin:'round', className }, React.createElement('path', {d:'M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z'}), React.createElement('circle', {cx:'12',cy:'10',r:'3'})),
+  Lock: ({ size = 16, className = '' }) => React.createElement('svg', { xmlns:'http://www.w3.org/2000/svg', width: size, height: size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:'1.8', strokeLinecap:'round', strokeLinejoin:'round', className }, React.createElement('rect', {x:'3',y:'11',width:'18',height:'11',rx:'2',ry:'2'}), React.createElement('path', {d:'M7 11V7a5 5 0 0110 0v4'})),
+  Globe: ({ size = 16, className = '' }) => React.createElement('svg', { xmlns:'http://www.w3.org/2000/svg', width: size, height: size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:'1.8', strokeLinecap:'round', strokeLinejoin:'round', className }, React.createElement('circle', {cx:'12',cy:'12',r:'10'}), React.createElement('line', {x1:'2',y1:'12',x2:'22',y2:'12'}), React.createElement('path', {d:'M12 2a15.3 15.3 0 014 10 15.3 15.3 0 01-4 10 15.3 15.3 0 01-4-10 15.3 15.3 0 014-10z'})),
+  Building: ({ size = 16, className = '' }) => React.createElement('svg', { xmlns:'http://www.w3.org/2000/svg', width: size, height: size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:'1.8', strokeLinecap:'round', strokeLinejoin:'round', className }, React.createElement('rect', {x:'3',y:'3',width:'18',height:'18',rx:'1'}), React.createElement('path', {d:'M9 3v18M15 3v18M3 9h18M3 15h18'})),
+  ChevronRight: ({ size = 16, className = '' }) => React.createElement('svg', { xmlns:'http://www.w3.org/2000/svg', width: size, height: size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:'1.8', strokeLinecap:'round', strokeLinejoin:'round', className }, React.createElement('polyline', {points:'9 18 15 12 9 6'})),
+  Filter: ({ size = 16, className = '' }) => React.createElement('svg', { xmlns:'http://www.w3.org/2000/svg', width: size, height: size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:'1.8', strokeLinecap:'round', strokeLinejoin:'round', className }, React.createElement('polygon', {points:'22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3'})),
+  X: ({ size = 16, className = '' }) => React.createElement('svg', { xmlns:'http://www.w3.org/2000/svg', width: size, height: size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:'1.8', strokeLinecap:'round', strokeLinejoin:'round', className }, React.createElement('line', {x1:'18',y1:'6',x2:'6',y2:'18'}), React.createElement('line', {x1:'6',y1:'6',x2:'18',y2:'18'})),
+  Shield: ({ size = 16, className = '' }) => React.createElement('svg', { xmlns:'http://www.w3.org/2000/svg', width: size, height: size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:'1.8', strokeLinecap:'round', strokeLinejoin:'round', className }, React.createElement('path', {d:'M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z'})),
+  Star: ({ size = 16, className = '' }) => React.createElement('svg', { xmlns:'http://www.w3.org/2000/svg', width: size, height: size, viewBox:'0 0 24 24', fill:'currentColor', stroke:'currentColor', strokeWidth:'1', strokeLinecap:'round', strokeLinejoin:'round', className }, React.createElement('polygon', {points:'12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2'})),
+  TrendingUp: ({ size = 16, className = '' }) => React.createElement('svg', { xmlns:'http://www.w3.org/2000/svg', width: size, height: size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:'1.8', strokeLinecap:'round', strokeLinejoin:'round', className }, React.createElement('polyline', {points:'23 6 13.5 15.5 8.5 10.5 1 18'}), React.createElement('polyline', {points:'17 6 23 6 23 12'})),
+  DollarSign: ({ size = 16, className = '' }) => React.createElement('svg', { xmlns:'http://www.w3.org/2000/svg', width: size, height: size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:'1.8', strokeLinecap:'round', strokeLinejoin:'round', className }, React.createElement('line', {x1:'12',y1:'1',x2:'12',y2:'23'}), React.createElement('path', {d:'M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6'})),
+  Briefcase: ({ size = 16, className = '' }) => React.createElement('svg', { xmlns:'http://www.w3.org/2000/svg', width: size, height: size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:'1.8', strokeLinecap:'round', strokeLinejoin:'round', className }, React.createElement('rect', {x:'2',y:'7',width:'20',height:'14',rx:'2',ry:'2'}), React.createElement('path', {d:'M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16'})),
+  CheckCircle: ({ size = 16, className = '' }) => React.createElement('svg', { xmlns:'http://www.w3.org/2000/svg', width: size, height: size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:'1.8', strokeLinecap:'round', strokeLinejoin:'round', className }, React.createElement('path', {d:'M22 11.08V12a10 10 0 11-5.93-9.14'}), React.createElement('polyline', {points:'22 4 12 14.01 9 11.01'})),
+  Zap: ({ size = 16, className = '' }) => React.createElement('svg', { xmlns:'http://www.w3.org/2000/svg', width: size, height: size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:'1.8', strokeLinecap:'round', strokeLinejoin:'round', className }, React.createElement('polygon', {points:'13 2 3 14 12 14 11 22 21 10 12 10 13 2'})),
+  Users: ({ size = 16, className = '' }) => React.createElement('svg', { xmlns:'http://www.w3.org/2000/svg', width: size, height: size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:'1.8', strokeLinecap:'round', strokeLinejoin:'round', className }, React.createElement('path', {d:'M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2'}), React.createElement('circle', {cx:'9',cy:'7',r:'4'}), React.createElement('path', {d:'M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75'})),
+  ArrowRight: ({ size = 16, className = '' }) => React.createElement('svg', { xmlns:'http://www.w3.org/2000/svg', width: size, height: size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:'1.8', strokeLinecap:'round', strokeLinejoin:'round', className }, React.createElement('line', {x1:'5',y1:'12',x2:'19',y2:'12'}), React.createElement('polyline', {points:'12 5 19 12 12 19'})),
+  RefreshCw: ({ size = 16, className = '' }) => React.createElement('svg', { xmlns:'http://www.w3.org/2000/svg', width: size, height: size, viewBox:'0 0 24 24', fill:'none', stroke:'currentColor', strokeWidth:'1.8', strokeLinecap:'round', strokeLinejoin:'round', className }, React.createElement('polyline', {points:'23 4 23 10 17 10'}), React.createElement('polyline', {points:'1 20 1 14 7 14'}), React.createElement('path', {d:'M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15'})),
+};
+
+// ─────────────────────────────────────────────
+// PAYWALL MODAL
+// ─────────────────────────────────────────────
+function PaywallModal({ onClose }) {
+  return React.createElement('div', { className: 'modal-backdrop', onClick: (e) => { if (e.target === e.currentTarget) onClose(); } },
+    React.createElement('div', {
+      className: 'relative w-full max-w-2xl card-glow rounded-2xl overflow-hidden',
+      style: { background: 'linear-gradient(160deg, #0b1733 0%, #06101e 100%)', border: '1px solid rgba(212,168,32,0.2)' }
+    },
+      // Close
+      React.createElement('button', { onClick: onClose, className: 'absolute top-4 right-4 text-slate2-400 hover:text-white transition-colors z-10 p-1', style: { background: 'rgba(255,255,255,0.05)', borderRadius: '8px' } },
+        React.createElement(Icons.X, { size: 18 })
+      ),
+      // Header
+      React.createElement('div', { className: 'p-8 pb-6 text-center', style: { borderBottom: '1px solid rgba(30,52,120,0.4)' } },
+        React.createElement('div', { className: 'inline-flex items-center gap-2 px-4 py-1.5 rounded-full mb-4', style: { background: 'rgba(212,168,32,0.1)', border: '1px solid rgba(212,168,32,0.3)' } },
+          React.createElement(Icons.Shield, { size: 14, className: 'text-gold-400' }),
+          React.createElement('span', { className: 'text-gold-400 text-xs font-mono font-medium tracking-widest uppercase' }, 'Upgrade Required')
+        ),
+        React.createElement('h2', { className: 'font-display text-3xl font-bold gold-text mb-2' }, 'Unlock Full Access'),
+        React.createElement('p', { className: 'text-slate2-400 text-sm max-w-md mx-auto leading-relaxed' }, 'Your free trial credits have been used. Upgrade to reveal unlimited contact intelligence, direct lines, and verified business addresses worldwide.')
+      ),
+      // Plans
+      React.createElement('div', { className: 'p-6 grid gap-4 sm:grid-cols-2' },
+        // Monthly
+        React.createElement('div', {
+          className: 'rounded-xl p-6 flex flex-col gap-4 transition-all',
+          style: { background: 'rgba(11,23,51,0.8)', border: '1px solid rgba(30,52,120,0.5)' }
+        },
+          React.createElement('div', {},
+            React.createElement('p', { className: 'text-slate2-400 text-xs font-mono uppercase tracking-widest mb-1' }, 'Monthly Access'),
+            React.createElement('div', { className: 'flex items-baseline gap-1' },
+              React.createElement('span', { className: 'font-display text-4xl font-bold text-white' }, '$100'),
+              React.createElement('span', { className: 'text-slate2-400 text-sm' }, '/ month')
+            )
+          ),
+          React.createElement('ul', { className: 'flex flex-col gap-2 flex-1' },
+            ['Unlimited contact reveals', 'All global regions', 'CSV export', 'Priority support'].map(f =>
+              React.createElement('li', { key: f, className: 'flex items-center gap-2 text-sm text-slate2-300' },
+                React.createElement(Icons.CheckCircle, { size: 14, className: 'text-green-400 flex-shrink-0' }), f
+              )
+            )
+          ),
+          React.createElement('button', {
+            className: 'w-full py-3 rounded-xl font-semibold text-sm transition-all',
+            style: { background: 'rgba(30,52,120,0.5)', border: '1px solid rgba(30,52,120,0.8)', color: '#bbc8e8' },
+            onMouseEnter: e => { e.target.style.background = 'rgba(30,52,120,0.8)'; e.target.style.color = '#fff'; },
+            onMouseLeave: e => { e.target.style.background = 'rgba(30,52,120,0.5)'; e.target.style.color = '#bbc8e8'; }
+          }, 'Subscribe Monthly →')
+        ),
+        // Annual
+        React.createElement('div', {
+          className: 'rounded-xl p-6 flex flex-col gap-4 gold-glow transition-all relative overflow-hidden',
+          style: { background: 'linear-gradient(145deg, rgba(17,31,68,0.95), rgba(11,23,51,0.95))', border: '1px solid rgba(212,168,32,0.4)' }
+        },
+          React.createElement('div', { className: 'absolute top-3 right-3 px-2 py-0.5 rounded-full text-xs font-mono font-bold', style: { background: 'rgba(212,168,32,0.15)', color: '#f5d87a', border: '1px solid rgba(212,168,32,0.3)' } }, 'BEST VALUE'),
+          React.createElement('div', {},
+            React.createElement('p', { className: 'text-gold-400 text-xs font-mono uppercase tracking-widest mb-1' }, 'Annual Access'),
+            React.createElement('div', { className: 'flex items-baseline gap-1' },
+              React.createElement('span', { className: 'font-display text-4xl font-bold gold-text' }, '$1,100'),
+              React.createElement('span', { className: 'text-slate2-400 text-sm' }, '/ year')
+            ),
+            React.createElement('p', { className: 'text-green-400 text-xs mt-1 font-mono' }, '✦ Save $100 vs monthly')
+          ),
+          React.createElement('ul', { className: 'flex flex-col gap-2 flex-1' },
+            ['Unlimited contact reveals', 'All global regions', 'CSV export + API access', 'Dedicated account manager', 'Quarterly data refresh'].map(f =>
+              React.createElement('li', { key: f, className: 'flex items-center gap-2 text-sm text-slate2-300' },
+                React.createElement(Icons.CheckCircle, { size: 14, className: 'text-gold-400 flex-shrink-0' }), f
+              )
+            )
+          ),
+          React.createElement('button', {
+            className: 'w-full py-3 rounded-xl font-bold text-sm transition-all',
+            style: { background: 'linear-gradient(135deg, #d4a820, #e8c44a)', color: '#03060f' },
+            onMouseEnter: e => e.target.style.opacity = '0.88',
+            onMouseLeave: e => e.target.style.opacity = '1'
+          }, '⚡ Get Annual Access →')
+        )
+      ),
+      // Footer note
+      React.createElement('div', { className: 'px-6 pb-6 text-center' },
+        React.createElement('p', { className: 'text-slate2-400 text-xs font-mono' }, '🔒 Secure checkout · 256-bit SSL · Cancel anytime')
+      )
+    )
+  );
+}
+
+// ─────────────────────────────────────────────
+// SKELETON LOADER
+// ─────────────────────────────────────────────
+function SkeletonCard() {
+  return React.createElement('div', { className: 'rounded-2xl p-6 card-glow', style: { background: '#0b1733', border: '1px solid rgba(30,52,120,0.3)' } },
+    React.createElement('div', { className: 'flex items-center justify-between mb-4' },
+      React.createElement('div', { className: 'shimmer h-5 w-24 rounded' }),
+      React.createElement('div', { className: 'shimmer h-4 w-32 rounded' })
+    ),
+    React.createElement('div', { className: 'shimmer h-7 w-3/4 rounded mb-4' }),
+    React.createElement('div', { className: 'divider mb-4' }),
+    React.createElement('div', { className: 'flex flex-col gap-3' },
+      React.createElement('div', { className: 'shimmer h-4 w-full rounded' }),
+      React.createElement('div', { className: 'shimmer h-4 w-5/6 rounded' }),
+      React.createElement('div', { className: 'shimmer h-4 w-4/5 rounded' })
+    ),
+    React.createElement('div', { className: 'mt-5 shimmer h-10 w-full rounded-xl' })
+  );
+}
+
+// ─────────────────────────────────────────────
+// BUSINESS CARD
+// ─────────────────────────────────────────────
+function BusinessCard({ biz, trialsLeft, onRevealClick, revealedIds }) {
+  const isRevealed = revealedIds.has(biz._id);
+  const catClass = getCatClass(biz.Category);
+
+  return React.createElement('div', {
+    className: 'rounded-2xl p-6 card-glow card-hover transition-all card-animate',
+    style: { background: 'linear-gradient(160deg, #0d1d3d 0%, #080f22 100%)', border: '1px solid rgba(30,52,120,0.35)' }
+  },
+    // Top row: badge + breadcrumb
+    React.createElement('div', { className: 'flex flex-wrap items-center justify-between gap-2 mb-3' },
+      React.createElement('span', { className: `inline-block text-xs font-mono font-medium px-3 py-1 rounded-full border ${catClass}` }, biz.Category || 'General'),
+      React.createElement('div', { className: 'flex items-center gap-1 text-slate2-400 text-xs font-mono' },
+        React.createElement(Icons.Globe, { size: 12 }),
+        React.createElement('span', {}, biz.Country),
+        biz.State && React.createElement(React.Fragment, {},
+          React.createElement(Icons.ChevronRight, { size: 10 }),
+          React.createElement('span', {}, biz.State)
+        ),
+        biz.City && React.createElement(React.Fragment, {},
+          React.createElement(Icons.ChevronRight, { size: 10 }),
+          React.createElement('span', {}, biz.City)
+        )
+      )
+    ),
+    // Company name
+    React.createElement('h2', { className: 'font-display text-xl font-bold text-white mb-1 leading-snug' }, biz.Name),
+    // Divider
+    React.createElement('div', { className: 'divider my-4' }),
+    // Contact info rows
+    React.createElement('div', { className: 'flex flex-col gap-3' },
+      // Phone
+      React.createElement('div', { className: 'flex items-start gap-3' },
+        React.createElement('div', { className: 'flex-shrink-0 mt-0.5', style: { color: '#f5d87a' } }, React.createElement(Icons.Phone, { size: 15 })),
+        React.createElement('div', { className: 'flex-1 min-w-0' },
+          React.createElement('p', { className: 'text-xs text-slate2-400 font-mono uppercase tracking-wider mb-0.5' }, 'Direct Line'),
+          React.createElement('p', { className: `text-sm font-mono ${isRevealed ? 'text-slate2-300' : 'blur-locked text-slate2-300 select-none'}` }, isRevealed ? biz.Phone : '+X (XXX) XXX-XXXX')
+        )
+      ),
+      // Email
+      React.createElement('div', { className: 'flex items-start gap-3' },
+        React.createElement('div', { className: 'flex-shrink-0 mt-0.5', style: { color: '#6ee7b7' } }, React.createElement(Icons.Mail, { size: 15 })),
+        React.createElement('div', { className: 'flex-1 min-w-0' },
+          React.createElement('p', { className: 'text-xs text-slate2-400 font-mono uppercase tracking-wider mb-0.5' }, 'Email'),
+          React.createElement('p', { className: `text-sm font-mono truncate ${isRevealed ? 'text-slate2-300' : 'blur-locked text-slate2-300'}` }, isRevealed ? biz.Email : 'xxxxxxxx@xxxxxxx.com')
+        )
+      ),
+      // Address
+      React.createElement('div', { className: 'flex items-start gap-3' },
+        React.createElement('div', { className: 'flex-shrink-0 mt-0.5', style: { color: '#93c5fd' } }, React.createElement(Icons.MapPin, { size: 15 })),
+        React.createElement('div', { className: 'flex-1 min-w-0' },
+          React.createElement('p', { className: 'text-xs text-slate2-400 font-mono uppercase tracking-wider mb-0.5' }, 'Registered Address'),
+          React.createElement('p', { className: `text-sm leading-relaxed ${isRevealed ? 'text-slate2-300' : 'blur-locked text-slate2-300'}` }, isRevealed ? biz.Address : 'XXXXXXXX XXXXXX, Suite XXXX, XXXXX XXXXX')
+        )
+      )
+    ),
+    // CTA button
+    React.createElement('div', { className: 'mt-5' },
+      isRevealed
+        ? React.createElement('div', { className: 'flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold', style: { background: 'rgba(16,185,129,0.1)', color: '#6ee7b7', border: '1px solid rgba(16,185,129,0.25)' } },
+            React.createElement(Icons.CheckCircle, { size: 15 }), 'Contact Info Revealed'
+          )
+        : React.createElement('button', {
+            onClick: () => onRevealClick(biz._id),
+            className: 'w-full flex items-center justify-center gap-2 py-3 rounded-xl text-sm font-semibold transition-all',
+            style: { background: 'linear-gradient(135deg, rgba(30,52,120,0.6), rgba(17,31,68,0.8))', border: '1px solid rgba(212,168,32,0.3)', color: '#f5d87a' },
+            onMouseEnter: e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(30,52,120,0.9), rgba(17,31,68,1))'; e.currentTarget.style.borderColor = 'rgba(212,168,32,0.6)'; },
+            onMouseLeave: e => { e.currentTarget.style.background = 'linear-gradient(135deg, rgba(30,52,120,0.6), rgba(17,31,68,0.8))'; e.currentTarget.style.borderColor = 'rgba(212,168,32,0.3)'; }
+          },
+            React.createElement(Icons.Lock, { size: 14 }),
+            'Reveal Premium Contact Info',
+            trialsLeft > 0
+              ? React.createElement('span', { className: 'ml-1 px-2 py-0.5 rounded-full text-xs font-mono', style: { background: 'rgba(212,168,32,0.15)', border: '1px solid rgba(212,168,32,0.3)' } }, `${trialsLeft} left`)
+              : null
+          )
+    )
+  );
+}
+
+// ─────────────────────────────────────────────
+// EQUITY CALCULATOR
+// ─────────────────────────────────────────────
+function EquityCalculator() {
+  const [profit, setProfit] = React.useState('');
+  const [share, setShare] = React.useState(5);
+  const [result, setResult] = React.useState(null);
+
+  const fmt = (n) => new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n);
+
+  const calculate = () => {
+    const p = parseFloat(profit.replace(/,/g, ''));
+    if (!isNaN(p) && p > 0) {
+      const earnings = p * (share / 100);
+      const monthly = earnings / 12;
+      const quarterly = earnings / 4;
+      setResult({ earnings, monthly, quarterly, profit: p, share });
+    }
+  };
+
+  return React.createElement('section', {
+    className: 'mt-16 rounded-3xl overflow-hidden',
+    style: { background: 'linear-gradient(160deg, #0b1733 0%, #060d1f 100%)', border: '1px solid rgba(30,52,120,0.4)' }
+  },
+    // Header
+    React.createElement('div', { className: 'p-8 pb-6', style: { borderBottom: '1px solid rgba(30,52,120,0.3)' } },
+      React.createElement('div', { className: 'flex items-center gap-3 mb-2' },
+        React.createElement('div', { className: 'p-2 rounded-xl', style: { background: 'rgba(212,168,32,0.1)', border: '1px solid rgba(212,168,32,0.2)' } },
+          React.createElement(Icons.TrendingUp, { size: 20, className: 'text-gold-400' })
+        ),
+        React.createElement('p', { className: 'text-xs font-mono uppercase tracking-widest text-gold-400' }, 'Business Strategy Hub')
+      ),
+      React.createElement('h2', { className: 'font-display text-2xl font-bold text-white' }, 'Corporate Equity Calculator'),
+      React.createElement('p', { className: 'text-slate2-400 text-sm mt-1' }, 'Calculate your ownership earnings based on total company profit and equity share.')
+    ),
+    // Body
+    React.createElement('div', { className: 'p-8' },
+      React.createElement('div', { className: 'grid gap-8 md:grid-cols-2' },
+        // Inputs
+        React.createElement('div', { className: 'flex flex-col gap-6' },
+          React.createElement('div', {},
+            React.createElement('label', { className: 'block text-xs font-mono uppercase tracking-widest text-slate2-400 mb-2' }, 'Total Company Profit (USD)'),
+            React.createElement('div', { className: 'relative' },
+              React.createElement('div', { className: 'absolute left-3 top-1/2 -translate-y-1/2', style: { color: '#f5d87a' } }, React.createElement(Icons.DollarSign, { size: 16 })),
+              React.createElement('input', {
+                type: 'text',
+                placeholder: 'e.g. 5,000,000',
+                value: profit,
+                onChange: e => setProfit(e.target.value),
+                style: { paddingLeft: '36px' }
+              })
+            )
+          ),
+          React.createElement('div', {},
+            React.createElement('label', { className: 'block text-xs font-mono uppercase tracking-widest text-slate2-400 mb-2' },
+              'Your Equity Share: ',
+              React.createElement('span', { className: 'text-gold-400 font-bold' }, `${share}%`)
+            ),
+            React.createElement('input', { type: 'range', min: 0.1, max: 100, step: 0.1, value: share, onChange: e => setShare(parseFloat(e.target.value)) }),
+            React.createElement('div', { className: 'flex justify-between text-xs font-mono text-slate2-400 mt-1' },
+              React.createElement('span', {}, '0.1%'),
+              React.createElement('span', {}, '25%'),
+              React.createElement('span', {}, '50%'),
+              React.createElement('span', {}, '100%')
+            )
+          ),
+          React.createElement('button', {
+            onClick: calculate,
+            className: 'flex items-center justify-center gap-2 py-3.5 rounded-xl font-bold text-sm transition-all',
+            style: { background: 'linear-gradient(135deg, #d4a820, #e8c44a)', color: '#03060f' },
+            onMouseEnter: e => e.target.style.opacity = '0.88',
+            onMouseLeave: e => e.target.style.opacity = '1'
+          },
+            React.createElement(Icons.Zap, { size: 16 }), 'Calculate Equity Earnings'
+          )
+        ),
+        // Results
+        React.createElement('div', { className: 'flex flex-col gap-3' },
+          result
+            ? React.createElement(React.Fragment, {},
+                React.createElement('p', { className: 'text-xs font-mono uppercase tracking-widest text-slate2-400 mb-1' }, 'Earnings Breakdown'),
+                [
+                  { label: 'Annual Earnings', value: fmt(result.earnings), icon: Icons.DollarSign, accent: '#f5d87a' },
+                  { label: 'Quarterly Earnings', value: fmt(result.quarterly), icon: Icons.Briefcase, accent: '#6ee7b7' },
+                  { label: 'Monthly Earnings', value: fmt(result.monthly), icon: Icons.TrendingUp, accent: '#93c5fd' },
+                ].map(({ label, value, icon: IC, accent }) =>
+                  React.createElement('div', { key: label, className: 'flex items-center justify-between p-4 rounded-xl', style: { background: 'rgba(11,23,51,0.8)', border: '1px solid rgba(30,52,120,0.4)' } },
+                    React.createElement('div', { className: 'flex items-center gap-2' },
+                      React.createElement(IC, { size: 16, style: { color: accent } }),
+                      React.createElement('span', { className: 'text-sm text-slate2-400' }, label)
+                    ),
+                    React.createElement('span', { className: 'font-display font-bold text-lg', style: { color: accent } }, value)
+                  )
+                ),
+                React.createElement('div', { className: 'p-3 rounded-xl text-xs font-mono text-slate2-400 mt-1', style: { background: 'rgba(30,52,120,0.15)', border: '1px solid rgba(30,52,120,0.3)' } },
+                  `Based on ${fmt(result.profit)} total profit × ${result.share}% equity stake.`
+                )
+              )
+            : React.createElement('div', { className: 'flex flex-col items-center justify-center h-full gap-3 py-8 text-center', style: { border: '1px dashed rgba(30,52,120,0.5)', borderRadius: '12px' } },
+                React.createElement(Icons.DollarSign, { size: 32, className: 'text-slate2-400' }),
+                React.createElement('p', { className: 'text-sm text-slate2-400' }, 'Enter your profit and equity share,\nthen click Calculate.')
+              )
+        )
+      )
+    )
+  );
+}
+
+// ─────────────────────────────────────────────
+// MAIN APP
+// ─────────────────────────────────────────────
+function App() {
+  const [data, setData] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState('');
+  const [search, setSearch] = React.useState('');
+  const [filterCountry, setFilterCountry] = React.useState('');
+  const [filterState, setFilterState] = React.useState('');
+  const [filterCity, setFilterCity] = React.useState('');
+  const [filterCat, setFilterCat] = React.useState('');
+  const [revealedIds, setRevealedIds] = React.useState(() => new Set(JSON.parse(localStorage.getItem('nexus_revealed') || '[]')));
+  const [trialsUsed, setTrialsUsed] = React.useState(() => parseInt(localStorage.getItem('nexus_trials') || '0', 10));
+  const [showPaywall, setShowPaywall] = React.useState(false);
+
+  const trialsLeft = Math.max(0, MAX_FREE_TRIALS - trialsUsed);
+
+  // Load data
+  React.useEffect(() => {
+    const fetchData = async () => {
+      setLoading(true);
+      if (!GOOGLE_SHEET_URL || GOOGLE_SHEET_URL === 'YOUR_GOOGLE_SHEET_CSV_LINK_HERE') {
+        // Use demo data
+        setTimeout(() => {
+          setData(DEMO_DATA.map((d, i) => ({ ...d, _id: `demo-${i}` })));
+          setLoading(false);
+        }, 900);
+        return;
+      }
+      try {
+        const res = await fetch(GOOGLE_SHEET_URL);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const text = await res.text();
+        const parsed = parseCSV(text).map((d, i) => ({ ...d, _id: `row-${i}` }));
+        setData(parsed);
+      } catch (err) {
+        setError('Could not load sheet data. Showing demo records.');
+        setData(DEMO_DATA.map((d, i) => ({ ...d, _id: `demo-${i}` })));
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  // Persist trials
+  React.useEffect(() => { localStorage.setItem('nexus_trials', trialsUsed); }, [trialsUsed]);
+  React.useEffect(() => { localStorage.setItem('nexus_revealed', JSON.stringify([...revealedIds])); }, [revealedIds]);
+
+  // Filter option lists
+  const countries = React.useMemo(() => [...new Set(data.map(d => d.Country).filter(Boolean))].sort(), [data]);
+  const states = React.useMemo(() => [...new Set(data.filter(d => !filterCountry || d.Country === filterCountry).map(d => d.State).filter(Boolean))].sort(), [data, filterCountry]);
+  const cities = React.useMemo(() => [...new Set(data.filter(d => (!filterCountry || d.Country === filterCountry) && (!filterState || d.State === filterState)).map(d => d.City).filter(Boolean))].sort(), [data, filterCountry, filterState]);
+  const categories = React.useMemo(() => [...new Set(data.map(d => d.Category).filter(Boolean))].sort(), [data]);
+
+  // Filtered results
+  const filtered = React.useMemo(() => {
+    const q = search.toLowerCase().trim();
+    return data.filter(d =>
+      (!q || [d.Name, d.Category, d.Country, d.State, d.City].some(f => f && f.toLowerCase().includes(q))) &&
+      (!filterCountry || d.Country === filterCountry) &&
+      (!filterState || d.State === filterState) &&
+      (!filterCity || d.City === filterCity) &&
+      (!filterCat || d.Category === filterCat)
+    );
+  }, [data, search, filterCountry, filterState, filterCity, filterCat]);
+
+  // Cascade reset
+  const handleCountryChange = v => { setFilterCountry(v); setFilterState(''); setFilterCity(''); };
+  const handleStateChange = v => { setFilterState(v); setFilterCity(''); };
+
+  // Reveal handler
+  const handleReveal = (id) => {
+    if (revealedIds.has(id)) return;
+    if (trialsUsed >= MAX_FREE_TRIALS) { setShowPaywall(true); return; }
+    const next = new Set(revealedIds);
+    next.add(id);
+    setRevealedIds(next);
+    setTrialsUsed(prev => prev + 1);
+  };
+
+  const resetTrials = () => {
+    setTrialsUsed(0);
+    setRevealedIds(new Set());
+    localStorage.removeItem('nexus_trials');
+    localStorage.removeItem('nexus_revealed');
+  };
+
+  return React.createElement('div', { className: 'min-h-screen relative', style: { zIndex: 1 } },
+
+    // ── Sticky Header ──
+    React.createElement('header', { className: 'sticky-bar', style: { background: 'rgba(3,6,15,0.85)', borderBottom: '1px solid rgba(30,52,120,0.35)' } },
+      React.createElement('div', { className: 'max-w-7xl mx-auto px-4 py-3' },
+        // Top row: logo + trial badge
+        React.createElement('div', { className: 'flex items-center justify-between mb-3' },
+          React.createElement('div', { className: 'flex items-center gap-3' },
+            React.createElement('div', { className: 'w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0', style: { background: 'linear-gradient(135deg, #d4a820, #f5d87a)' } },
+              React.createElement(Icons.Globe, { size: 16, className: 'text-navy-950' })
+            ),
+            React.createElement('div', {},
+              React.createElement('h1', { className: 'font-display font-bold text-lg leading-none gold-text' }, 'Nexus Directory'),
+              React.createElement('p', { className: 'text-xs text-slate2-400 font-mono' }, 'Global B2B Intelligence')
+            )
+          ),
+          // Trial badge
+          React.createElement('div', { className: 'flex items-center gap-2' },
+            React.createElement('div', {
+              className: `flex items-center gap-2 px-3 py-1.5 rounded-full border font-mono text-xs badge-pulse cursor-pointer`,
+              style: trialsLeft > 0
+                ? { background: 'rgba(16,185,129,0.1)', borderColor: 'rgba(16,185,129,0.3)', color: '#6ee7b7' }
+                : { background: 'rgba(212,168,32,0.1)', borderColor: 'rgba(212,168,32,0.3)', color: '#f5d87a' },
+              title: 'Click to reset (dev only)',
+              onClick: resetTrials
+            },
+              React.createElement(Icons.Shield, { size: 12 }),
+              React.createElement('span', {}, trialsLeft > 0 ? `Free Tier · ${trialsLeft}/${MAX_FREE_TRIALS} Reveals Left` : `Free Tier · Upgrade to Continue`)
+            )
+          )
+        ),
+        // Search bar
+        React.createElement('div', { className: 'relative mb-3' },
+          React.createElement('div', { className: 'absolute left-3 top-1/2 -translate-y-1/2 text-slate2-400' }, React.createElement(Icons.Search, { size: 16 })),
+          React.createElement('input', {
+            type: 'text',
+            placeholder: 'Search companies, categories, countries…',
+            value: search,
+            onChange: e => setSearch(e.target.value),
+            style: { paddingLeft: '38px' }
+          }),
+          search && React.createElement('button', {
+            className: 'absolute right-3 top-1/2 -translate-y-1/2 text-slate2-400 hover:text-white',
+            onClick: () => setSearch('')
+          }, React.createElement(Icons.X, { size: 14 }))
+        ),
+        // Filter row
+        React.createElement('div', { className: 'flex flex-wrap gap-2' },
+          React.createElement('div', { className: 'relative flex items-center' },
+            React.createElement(Icons.Filter, { size: 12, className: 'absolute left-2.5 text-slate2-400 pointer-events-none' }),
+            React.createElement('select', { value: filterCountry, onChange: e => handleCountryChange(e.target.value), style: { paddingLeft: '28px' } },
+              React.createElement('option', { value: '' }, 'All Countries'),
+              ...countries.map(c => React.createElement('option', { key: c, value: c }, c))
+            )
+          ),
+          React.createElement('select', { value: filterState, onChange: e => handleStateChange(e.target.value) },
+            React.createElement('option', { value: '' }, 'All States'),
+            ...states.map(s => React.createElement('option', { key: s, value: s }, s))
+          ),
+          React.createElement('select', { value: filterCity, onChange: e => setFilterCity(e.target.value) },
+            React.createElement('option', { value: '' }, 'All Cities'),
+            ...cities.map(c => React.createElement('option', { key: c, value: c }, c))
+          ),
+          React.createElement('select', { value: filterCat, onChange: e => setFilterCat(e.target.value) },
+            React.createElement('option', { value: '' }, 'All Categories'),
+            ...categories.map(c => React.createElement('option', { key: c, value: c }, c))
+          ),
+          (filterCountry || filterState || filterCity || filterCat || search) &&
+            React.createElement('button', {
+              onClick: () => { setSearch(''); setFilterCountry(''); setFilterState(''); setFilterCity(''); setFilterCat(''); },
+              className: 'flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-mono transition-all',
+              style: { background: 'rgba(244,63,94,0.1)', border: '1px solid rgba(244,63,94,0.3)', color: '#fda4af' }
+            },
+              React.createElement(Icons.X, { size: 12 }), 'Clear All'
+            )
+        )
+      )
+    ),
+
+    // ── Main content ──
+    React.createElement('main', { className: 'max-w-7xl mx-auto px-4 py-8' },
+
+      // ── Hero banner (when not searching) ──
+      !search && !filterCountry && !filterState && !filterCity && !filterCat &&
+        React.createElement('div', { className: 'mb-10 text-center' },
+          React.createElement('p', { className: 'text-xs font-mono uppercase tracking-[0.3em] text-gold-400 mb-3' }, '✦ Verified Global Intelligence ✦'),
+          React.createElement('h1', { className: 'font-display text-4xl md:text-5xl font-black text-white leading-tight mb-3' },
+            'The World\'s B2B',
+            React.createElement('br', {}),
+            React.createElement('span', { className: 'gold-text' }, 'Intelligence Platform')
+          ),
+          React.createElement('p', { className: 'text-slate2-400 max-w-lg mx-auto text-sm leading-relaxed' }, 'Discover and connect with verified global enterprises. From direct lines to registered addresses — all in one executive-grade directory.'),
+          !loading &&
+            React.createElement('div', { className: 'flex items-center justify-center gap-6 mt-6' },
+              React.createElement('div', { className: 'text-center' },
+                React.createElement('p', { className: 'font-display text-2xl font-bold gold-text' }, data.length.toLocaleString()),
+                React.createElement('p', { className: 'text-xs text-slate2-400 font-mono' }, 'Companies')
+              ),
+              React.createElement('div', { className: 'w-px h-10', style: { background: 'rgba(30,52,120,0.5)' } }),
+              React.createElement('div', { className: 'text-center' },
+                React.createElement('p', { className: 'font-display text-2xl font-bold gold-text' }, countries.length),
+                React.createElement('p', { className: 'text-xs text-slate2-400 font-mono' }, 'Countries')
+              ),
+              React.createElement('div', { className: 'w-px h-10', style: { background: 'rgba(30,52,120,0.5)' } }),
+              React.createElement('div', { className: 'text-center' },
+                React.createElement('p', { className: 'font-display text-2xl font-bold gold-text' }, categories.length),
+                React.createElement('p', { className: 'text-xs text-slate2-400 font-mono' }, 'Sectors')
+              )
+            )
+        ),
+
+      // Error notice
+      error && React.createElement('div', { className: 'mb-6 flex items-center gap-2 px-4 py-3 rounded-xl text-sm font-mono', style: { background: 'rgba(212,168,32,0.08)', border: '1px solid rgba(212,168,32,0.25)', color: '#f5d87a' } },
+        React.createElement(Icons.RefreshCw, { size: 14 }), error
+      ),
+
+      // Results meta
+      !loading && React.createElement('div', { className: 'flex items-center justify-between mb-5' },
+        React.createElement('p', { className: 'text-sm text-slate2-400 font-mono' },
+          React.createElement('span', { className: 'text-white font-bold' }, filtered.length.toLocaleString()), ` result${filtered.length !== 1 ? 's' : ''}${search || filterCountry || filterCat ? ' — filtered' : ''}`
+        ),
+        GOOGLE_SHEET_URL === 'YOUR_GOOGLE_SHEET_CSV_LINK_HERE' &&
+          React.createElement('span', { className: 'text-xs font-mono px-2 py-1 rounded-full', style: { background: 'rgba(212,168,32,0.1)', color: '#f5d87a', border: '1px solid rgba(212,168,32,0.2)' } }, '● Demo Data')
+      ),
+
+      // Cards grid
+      loading
+        ? React.createElement('div', { className: 'grid gap-5 sm:grid-cols-2 lg:grid-cols-3' },
+            [...Array(6)].map((_, i) => React.createElement(SkeletonCard, { key: i }))
+          )
+        : filtered.length === 0
+          ? React.createElement('div', { className: 'text-center py-20' },
+              React.createElement(Icons.Search, { size: 40, className: 'mx-auto mb-4 text-slate2-400' }),
+              React.createElement('h3', { className: 'font-display text-xl text-white mb-2' }, 'No results found'),
+              React.createElement('p', { className: 'text-slate2-400 text-sm' }, 'Try adjusting your search or clearing filters.')
+            )
+          : React.createElement('div', { className: 'grid gap-5 sm:grid-cols-2 lg:grid-cols-3' },
+              filtered.map(biz =>
+                React.createElement(BusinessCard, { key: biz._id, biz, trialsLeft, onRevealClick: handleReveal, revealedIds })
+              )
+            ),
+
+      // Equity calculator
+      React.createElement(EquityCalculator),
+
+      // Footer
+      React.createElement('footer', { className: 'mt-16 pt-8 text-center', style: { borderTop: '1px solid rgba(30,52,120,0.3)' } },
+        React.createElement('p', { className: 'text-xs text-slate2-400 font-mono' }, '© 2025 Nexus Global Directory · All business data is for informational purposes only.'),
+        React.createElement('p', { className: 'text-xs text-slate2-400 font-mono mt-1' }, 'Built for enterprise intelligence · Powered by verified commercial records')
+      )
+    ),
+
+    // Paywall modal
+    showPaywall && React.createElement(PaywallModal, { onClose: () => setShowPaywall(false) })
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(React.createElement(App));
+</script>
+</body>
+</html>
